@@ -10,6 +10,7 @@ def _do_mstep(self, stats, s_mask=None, t_mask=None, e_mask=None):
 
     if 't' in self.params:
         transmat_ = np.maximum(self.transmat_prior - 1 + stats['trans'], 0)
+        transmat_ = np.where(t_mask == 1, transmat_, self.transmat_)
         self.transmat_ = np.where(self.transmat_ == 0, 0, transmat_)
         normalize(self.transmat_, axis=1)
 
