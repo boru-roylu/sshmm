@@ -32,7 +32,7 @@ random_state=42
 n_components = 3
 n_features = len(vocab)
 init_first_state_prob = 0.99
-max_num_splits = 100
+max_num_splits = 200
 
 ##############################################################
 # Prepare parameters for a 4-components HMM
@@ -77,6 +77,11 @@ model = model.fit(xs, x_lens)
 
 try:
     for s in range(max_num_splits):
+
+        print("************ startprob ************")
+        print(model.startprob_)
+        print("************ transmat ************")
+        print(model.transmat_)
     
         # state-splitting
         n_components += 1
@@ -109,11 +114,12 @@ try:
         print(f"last logprob = {old_model.monitor_.history[-1]}")
         print(f"now logprob = {model.monitor_.history[-1]}")
     
-        print("*"*50)
+        print()
+        print("#"*20, " epoch end ", "#"*20)
+        print()
     
-        if model.monitor_.history[-1] < old_model.monitor_.history[-1]:
-            with open(f"{n_components-1}.pkl", "wb") as f:
-                pickle.dump(old_model, f)
+        with open(f"./models/{n_components}.pkl", "wb") as f:
+            pickle.dump(old_model, f)
 except:
     print("save old model")
     with open(f"{n_components-1}.pkl", "wb") as f:
