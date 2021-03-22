@@ -17,16 +17,18 @@ from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
 from data import get_datasets
-from sshmm import _do_mstep, split_state_startprob, split_state_transmat, split_state_emission
+from sshmm import _do_mstep, split_state_startprob, split_state_transmat, split_state_emission, entropy
 
 train_dataset, dev_dataset, vocab = get_datasets("./data/agent")
 
 print('vocab size = ', len(vocab))
 
+n_iter = 1
 random_state=42
 n_components = 4
-init_first_state_prob = 0.99
 n_features = len(vocab)
+init_first_state_prob = 0.99
+max_num_splits = 100
 
 ##############################################################
 # Prepare parameters for a 4-components HMM
@@ -55,7 +57,7 @@ xs = np.concatenate(xs).reshape(-1, 1)
 # Build an HMM instance and set parameters
 model = hmm.MultinomialHMM(n_components=n_components,
                            init_params="",
-                           n_iter=1, verbose=True)
+                           n_iter=n_iter, verbose=True)
 
 model.startprob_ = startprob
 model.transmat_ = transmat
@@ -66,29 +68,26 @@ model._do_mstep = _do_mstep.__get__(model, _do_mstep)
 print("training ...")
 model = model.fit(xs, x_lens)
 
-print(model.emissionprob_.shape)
-print(model.emissionprob_.shape)
-print(model.emissionprob_.shape)
-exit()
-split_idx = 0
-n_components += 1
 
-startprob = split_state_startprob(model.startprob_, split_idx)
-transmat = split_state_transmat(model.transmat_, split_idx)
-emissionprob = split_state_emission(model.emissionprob_, split_idx)
-
-
-model = hmm.MultinomialHMM(n_components=n_components,
-                           init_params="",
-                           n_iter=1, verbose=True)
-model._do_mstep = _do_mstep.__get__(model, _do_mstep)
-
-model.startprob_ = startprob
-model.transmat_ = transmat
-model.emissionprob_ = emissionprob
-
-print("training ...")
-model.fit(xs, x_lens)
-
-# Generate samples
-#X, Z = model.sample(500)
+for s in range(max_num_splits):
+    e = entropy(model.emissionprob_)
+    split_idx = np.argmax(e)
+    split_idx = 0
+    n_components += 1
+    
+    startprob = split_state_startprob(model.startprob_, split_idx)
+    transmat = split_state_transmat(model.transmat_, split_idx)
+    emissionprob = split_state_emission(model.emissionprob_, split_idx)
+    
+    
+    model = hmm.MultinomialHMM(n_components=n_components,
+                               init_params="",
+                               n_iter=1, verbose=True)
+    model._do_mstep = _do_mstep.__get__(model, _do_mstep)
+    
+    model.startprob_ = startprob
+    model.transmat_ = transmat
+    model.emissionprob_ = emissionprob
+    
+    print("training ...")
+    model = model.fit(xs, x_lens)

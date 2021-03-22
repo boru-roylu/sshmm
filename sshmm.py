@@ -28,7 +28,6 @@ def split_state_startprob(old, i):
 
 def split_state_transmat(old, i):
     new = []
-    print(old)
     for j, p in enumerate(old):
         p = p.tolist()
         if i != len(old) and i == j:
@@ -54,3 +53,9 @@ def split_state_emission(old, i):
     new = old.tolist()
     new.append(b)
     return np.array(new)
+
+
+def entropy(prob):
+    log_prob = np.log(np.clip(prob, 1e-12, 1))
+    e = -np.sum(prob * log_prob, axis=1)
+    return e
