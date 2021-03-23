@@ -1,32 +1,39 @@
 import os
 import torch
 import numpy as np
+import pandas as pd
+from collections import Counter
 
 
-def get_datasets(parent_dir):
+def get_datasets(parent_dir, topk):
     lines = []
 
-    vocab = set()
+    vocab = {}
     data = {"train": [], "dev": []}
     for split in ["train", "dev"]:
-        path = os.path.join(parent_dir, f"{split}.txt")
+        path = os.path.join(parent_dir, f"{split}.csv")
+        df = pd.read_csv(path, sep="|")
 
-        with open(path, 'r') as f:
-            for l in f:
-                l = [int(ll) for ll in l.strip().split(',')]
-                data[split].append(l)
-                vocab.update(set(l))
+        seqs = df["cluster_sequence"].apply(lambda x: x.split(",")).tolist()
+        seqs = [[int(s) for s in seq] for seq in seqs]
 
-    vocab = {v: i for i, v in enumerate(vocab)}
+        data[split] = seqs
 
-    # get input and output alphabets
+    vocab = Counter([s for seq in data["train"] for s in seq])
+    vocab2 = Counter([s for seq in data["dev"] for s in seq])
+    vocab = vocab + vocab2
+    vocab = {k: i for i, (k, _) in enumerate(vocab.most_common(topk))}
+
+    for split, d in data.items():
+        for i, x in enumerate(d):
+            d[i] = filter(lambda xx: xx in vocab, x)
+
     train_dataset = TextDataset(data["train"], vocab)
     dev_dataset = TextDataset(data["dev"], vocab)
 
     return train_dataset, dev_dataset, vocab
 
 
-#class TextDataset(torch.utils.data.Dataset):
 class TextDataset:
     def __init__(self, data, vocab):
         self.data= data
@@ -37,34 +44,4 @@ class TextDataset:
 
     def __getitem__(self, idx):
         x = list(map(self.vocab.get, self.data[idx]))
-
         return np.array(x)
-
-
-class PadAndOneHot:
-    def __init__(self, vocab):
-        self.vocab = vocab
-
-    def __call__(self, batch):
-        """
-        Returns a minibatch of strings, one-hot encoded and padded to have the same length.
-        """
-        xs = []
-        x_lens = []
-        batch_size = len(batch)
-        for i in range(batch_size):
-            x = batch[i]
-            x = [self.vocab[xx] for xx in x]
-            xs.append(x)
-            x_lens.append(len(x))
-
-        # pad all sequences with 0 to have same length
-        T = max(x_lens)
-        for i in range(batch_size):
-            xs[i] += [0] * (T - x_lens[i])
-            xs[i] = torch.tensor(xs[i])
-
-        xs = torch.stack(xs)
-        x_lens = torch.tensor(x_lens)
-
-        return (xs, x_lens)
