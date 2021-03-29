@@ -18,7 +18,8 @@ from sshmm import _do_mstep, split_state_startprob, split_state_transmat, split_
 pd.options.display.max_colwidth = 150
 topk_cluster = 30
 
-train_dataset, dev_dataset, vocab = get_datasets("./data/agent", topk=topk_cluster)
+train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", topk_cluster)
+vocab = {v: k for k, v in vocab.items()}
 print('vocab size = ', len(vocab))
 
 model_path = sys.argv[1]
@@ -27,7 +28,7 @@ df_path = sys.argv[2]
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
-df = pd.read_csv(df_path, compression="gzip") 
+df = pd.read_csv(df_path)
 
 xs = list(iter(dev_dataset))
 x_lens = [len(x) for x in xs]
@@ -39,14 +40,15 @@ for i in range(10):
     x, s = model.sample(sample_len)
     x = x.reshape(-1)
 
-    #while x[-1] != 128:
+    #while vocab[x[-1]] not in {424, 541}:
     #    print('resample')
     #    x, s = model.sample(sample_len)
     #    x = x.reshape(-1)
 
     utts = []
     for xx, ss in zip(x, s):
-        utt = df[df["cluster"] == xx].sample()["phrase"].tolist()[0]
+        xx = vocab[xx]
+        utt = df[df["cluster"] == xx]["phrase"].tolist()[0].replace("dot ", " ")
         utts.append((xx, ss, utt))
 
     sample_df = pd.DataFrame(utts, columns=["cluster", "state", "phrase"])

@@ -74,6 +74,6 @@ def split_state_emission(old, i):
 
 
 def entropy(prob):
-    log_prob = np.log(np.clip(prob, 1e-12, 1))
+    log_prob = np.log2(np.clip(prob, 1e-12, 1))
     e = -np.sum(prob * log_prob, axis=1)
     return e
