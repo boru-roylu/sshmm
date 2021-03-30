@@ -25,6 +25,7 @@ from utils import (
     get_ordered_idxs,
     get_state_labels,
     get_ordered_emission,
+    topk_trans,
 )
     
 import argparse
@@ -47,6 +48,12 @@ parser.add_argument(
     action="store_true",
     help="Mixture b",
 )
+parser.add_argument(
+    "--topk_trans",
+    default=0,
+    type=int,
+    help="Limit trans to topk",
+)
 args = parser.parse_args()
 
 np.set_printoptions(precision=3)
@@ -59,6 +66,10 @@ image_dir = f"./images/models_{args.topk_cluster}"
 if args.mixture:
     exp_dir += "_mixture"
     image_dir += "_mixture"
+
+if args.topk_trans != 0:
+    exp_dir += f"_topk_{args.topk_trans}"
+    image_dir += f"_topk_{args.topk_trans}"
 
 os.makedirs(exp_dir, exist_ok=True)
 os.makedirs(image_dir, exist_ok=True)
@@ -208,6 +219,9 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     model._do_mstep = funcType(_do_mstep, model) 
 
     model.startprob_ = startprob
-    model.transmat_ = transmat
+    if topk_trans != 0:
+        model.transmat_ = topk_transmat(transmat, topk_trans)
+    else:
+        model.transmat_ = transmat
     model.emissionprob_ = emissionprob
     print("\n\n")
