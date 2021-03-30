@@ -25,7 +25,7 @@ from utils import (
     get_ordered_idxs,
     get_state_labels,
     get_ordered_emission,
-    topk_trans,
+    topk_transmat,
 )
     
 import argparse
@@ -56,9 +56,9 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-np.set_printoptions(precision=3)
+np.set_printoptions(precision=2)
 sns.set_style('darkgrid')
-sns.set(font_scale=0.7)
+sns.set(font_scale=0.35)
 
 exp_dir = f"./exp/models_{args.topk_cluster}"
 image_dir = f"./images/models_{args.topk_cluster}"
@@ -174,7 +174,7 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     
     emission_entropy = entropy(model.emissionprob_)
     ordered_emission_entropy = get_ordered_emission(emission_entropy, ordered_idxs) 
-    plot_bar(state_labels, ordered_emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_before_training.eps"), single_state_entropy)
+    plot_bar(state_labels, ordered_emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_after_training.eps"), single_state_entropy)
     print(f"    After training, entropy = {ordered_emission_entropy}")
     print(f"    After training, average entropy = {np.mean(emission_entropy):.2f}")
     ordered_transmat = get_and_plot_ordered_transmat(model.transmat_, ordered_idxs, os.path.join(image_dir, f"transmat/{num_states}_after_training.eps"), state_labels)
@@ -219,8 +219,8 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     model._do_mstep = funcType(_do_mstep, model) 
 
     model.startprob_ = startprob
-    if topk_trans != 0:
-        model.transmat_ = topk_transmat(transmat, topk_trans)
+    if args.topk_trans != 0:
+        model.transmat_ = topk_transmat(transmat, args.topk_trans)
     else:
         model.transmat_ = transmat
     model.emissionprob_ = emissionprob
