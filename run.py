@@ -32,8 +32,8 @@ parser.add_argument(
     "--topk_cluster",
     required=True,
     type=int,
-    help="topk clusters",
 )
+    help="topk clusters",
 args = parser.parse_args()
 
 np.set_printoptions(precision=3)
@@ -110,7 +110,7 @@ state_idx2parent = OrderedDict([(i, None) for i in range(num_states)])
 state_transmat_info = {i: [] for i in range(num_states)}
 
 old_model = None
-for curr_iter in range(targeted_num_states-num_init_states):
+for curr_iter in range(targeted_num_states-num_init_states+1):
     print(f"***** current_iter = {curr_iter}; num_states = {num_states} *****")
 
     state_emission_x_labels = get_emission_x_labels(state_idx2parent)
