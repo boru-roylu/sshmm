@@ -1,26 +1,34 @@
 import os
 import copy
-import pickle
 import types
 import numpy as np
-from sklearn.utils import check_random_state
-from functools import partial
-from collections import Counter, OrderedDict
-from pprint import pprint
-import pandas as pd
+import seaborn as sns
 
 from hmmlearn import hmm
-from hmmlearn.utils import normalize
+from pprint import pprint
+from functools import partial
+from collections import Counter, OrderedDict
 
 from data import get_datasets
-from sshmm import _do_mstep, split_state_startprob, split_state_transmat, split_state_emission, entropy
+from sshmm import (
+    _do_mstep,
+    split_state_startprob,
+    split_state_transmat,
+    split_state_emission,
+    entropy,
+)
 
-import matplotlib.pyplot as plt
-import seaborn as sns
+from utils import (
+    get_and_plot_ordered_transmat,
+    plot_bar,
+    save_model,
+    get_emission_x_labels,
+)
+    
 
 np.set_printoptions(precision=3)
 sns.set_style('darkgrid')
-sns.set(font_scale=0.5)
+sns.set(font_scale=0.7)
 
 topk_cluster = 30
 exp_dir = f"./exp/models_{topk_cluster}"
@@ -30,57 +38,14 @@ os.makedirs(image_dir, exist_ok=True)
 os.makedirs(os.path.join(image_dir, "entropy"), exist_ok=True)
 os.makedirs(os.path.join(image_dir, "transmat"), exist_ok=True)
 
+"""
+    Config
+"""
 n_iter = 10
 random_state=42
 num_init_states = 3
 init_first_state_prob = 1.0
 targeted_num_states = 10
-
-def get_ordered_transmat(transmat, state_transmat_info, path):
-    ordered_idxs = []
-    for i in range(len(state_transmat_info)):
-        ordered_idxs.append(i)
-        for j in state_transmat_info[i]:
-            ordered_idxs.append(j)
-
-    ordered_transmat = transmat[ordered_idxs]
-    num_states = len(ordered_transmat)
-
-    df_list = []
-    for i in range(num_states):
-        for j in range(num_states):
-            df_list.append((i, j, ordered_transmat[i][j]))
-    df = pd.DataFrame(df_list, columns=["i", "j", "transprob"])
-
-    df = pd.pivot_table(data=df, index='i', values='transprob', columns='j')
-
-    plt.clf()
-    sns.heatmap(df, cmap="Reds", annot=True, fmt=".3f", vmin=0, vmax=1)
-    plt.savefig(path)
-
-
-def plot_bar(x, y, path):
-    assert len(x) == len(y)
-    plt.clf()
-    plt.rcParams["axes.labelsize"] = 8
-    sns.barplot(x="state_idx", y="entropy", data=pd.DataFrame({"state_idx": x, "entropy": y}))
-    plt.savefig(path)
-
-
-def save_model(num_states, model, exp_dir):
-    with open(os.path.join(exp_dir, f"{num_states}.pkl"), "wb") as f:
-        model._do_mstep = None
-        pickle.dump(model, f)
-
-
-def get_emission_x_labels(state_idx2parent):
-    ret = []
-    for k, v in state_idx2parent.items():
-        if v:
-            ret.append(f"{k}_{v}")
-        else:
-            ret.append(str(k))
-    return ret
 
 train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", topk_cluster)
 
@@ -136,7 +101,7 @@ state_idx2parent = OrderedDict([(i, None) for i in range(num_states)])
 state_transmat_info = {i: [] for i in range(num_states)}
 
 old_model = None
-for curr_iter in range(targeted_num_states):
+for curr_iter in range(targeted_num_states-num_init_states):
     print(f"***** current_iter = {curr_iter}; num_states = {num_states} *****")
 
     state_emission_x_labels = get_emission_x_labels(state_idx2parent)
@@ -146,7 +111,9 @@ for curr_iter in range(targeted_num_states):
     print(f"    Before training, entropy = {emission_entropy}")
     print(f"    Before training, average entropy = {np.mean(emission_entropy):.2f}")
 
-    get_ordered_transmat(model.transmat_, state_transmat_info, os.path.join(image_dir, f"transmat/{num_states}_before_training.eps"))
+    ordered_transmat = get_and_plot_ordered_transmat(model.transmat_, state_transmat_info, os.path.join(image_dir, f"transmat/{num_states}_before_training.eps"))
+    print("    Before training, transmat = ")
+    print(ordered_transmat)
 
     # Training
     model = model.fit(xs, x_lens)
@@ -155,8 +122,11 @@ for curr_iter in range(targeted_num_states):
     plot_bar(state_emission_x_labels, emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_after_training.eps"))
     print(f"    After training, entropy = {emission_entropy}")
     print(f"    After training, average entropy = {np.mean(emission_entropy):.2f}")
-    get_ordered_transmat(model.transmat_, state_transmat_info, os.path.join(image_dir, f"transmat/{num_states}_after_training.eps"))
-    print(model.transmat_)
+    ordered_transmat = get_and_plot_ordered_transmat(model.transmat_, state_transmat_info, os.path.join(image_dir, f"transmat/{num_states}_after_training.eps"))
+    print("    After training, transmat = ")
+    print(ordered_transmat)
+    print("    State_transmat_info = ", end="")
+    print(state_transmat_info)
 
     save_model(num_states, model, exp_dir)
 
@@ -179,9 +149,6 @@ for curr_iter in range(targeted_num_states):
     while state_idx2parent[ancester] is not None:
         ancester = state_idx2parent[ancester]
     state_transmat_info[ancester].append(new_state_idx)
-
-    print("    State_transmat_info = ", end="")
-    pprint(state_transmat_info)
 
     startprob, _ = split_state_startprob(model.startprob_, split_idx)
     transmat, transmat_mask = split_state_transmat(model.transmat_, split_idx)
