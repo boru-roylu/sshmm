@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from hmmlearn.utils import normalize
 from hmmlearn import hmm
@@ -33,15 +34,18 @@ def split_state_startprob(old, i):
 def split_state_transmat(old, i):
     new = []
     mask = []
+    new_state_prob = None
     for j, p in enumerate(old):
         p = p.tolist()
-        if i != len(old) and i == j:
-            if i+1 != len(old):
-                p[i+1] /= 2
-                p.append(p[i+1])
-            else:
-                p[i] /= 2
-                p.append(p[i])
+
+        # i is the split idx
+        # when i == j, p is i the transmat of the split state i
+        if i == j:
+            new_state_prob = copy.deepcopy(p)
+            new_state_prob.append(new_state_prob[i])
+            new_state_prob[i] = 0
+            p[i] /= 2
+            p.append(p[i])
             m = [1]*len(p)
         else:
             p.append(0)
@@ -49,23 +53,18 @@ def split_state_transmat(old, i):
         mask.append(m)
         new.append(p)
 
-    if i == len(old):
-        new[i][j+1] = new[i][j] / 2
-        new[i][j] /= 2
+    new.append(new_state_prob)
+    m = [1]*len(p)
+    mask.append(m)
 
-    new.append(new[i])
-    mask.append(mask[i])
     new = np.array(new)
     mask = np.array(mask)
-
-    new[-1][-1] += new[-1][i]
-    new[-1][i] = 0
 
     return new, mask
 
 
 def split_state_emission(old, i):
-    b = ((old[i-1] + old[i]) / 2).tolist()
+    b = copy.deepcopy(old[i].tolist()) #((old[i-1] + old[i]) / 2).tolist()
     new = old.tolist()
     new.append(b)
     new = np.array(new)
@@ -76,3 +75,9 @@ def entropy(prob):
     log_prob = np.log2(np.clip(prob, 1e-12, 1))
     e = -np.sum(prob * log_prob, axis=1)
     return e
+
+
+if __name__ == "__main__":
+    t = np.ones(9).reshape(3, 3)
+    new, mask = split_state_transmat(t, 0)
+    print(new)

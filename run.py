@@ -32,8 +32,8 @@ parser.add_argument(
     "--topk_cluster",
     required=True,
     type=int,
-)
     help="topk clusters",
+)
 args = parser.parse_args()
 
 np.set_printoptions(precision=3)
@@ -151,6 +151,8 @@ for curr_iter in range(targeted_num_states-num_init_states+1):
     new_state_idx = num_states
     split_idx = np.argmax(emission_entropy)
     state_idx2parent[new_state_idx] = split_idx
+
+    print(f"    Split index = {split_idx}")
 
     # search the ancester of the new state
     # ancester will be one of the 
