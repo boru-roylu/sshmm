@@ -80,11 +80,13 @@ for _id, x, x_len in tqdm(zip(ids, xs, x_lens), total=len(xs)):
         ori_utts = chat["phrase"].tolist()
         ori_clusters = chat["cluster"].tolist()
 
-        for s, c, ou, oc in zip(states, cluster_seq, ori_utts, ori_clusters):
+        for s, c, outt, oc in zip(states, cluster_seq, ori_utts, ori_clusters):
             c = vocab[c]
             utt = df[df["cluster"] == c]["phrase"].tolist()[0]
-            utts.append((_id, oc, c, s, utt, ou))
-        dfs.append(pd.DataFrame(utts, columns=["sourcemediaid", "original_cluster", "sampled_cluster", "state", "phrase", "original_phrase"]))
+            utts.append((_id, oc, c, s, outt, utt))
+        dfs.append(pd.DataFrame(utts, columns=[
+            "sourcemediaid", "original_cluster", "state_cluster",
+            "state", "original_utterance", "state_utterance"]))
 
 df = pd.concat(dfs)
 df.to_csv(args.output_path, sep="|", index=False)

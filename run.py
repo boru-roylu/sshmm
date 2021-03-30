@@ -23,6 +23,7 @@ from utils import (
     plot_bar,
     save_model,
     get_emission_x_labels,
+    get_ordered_emission,
 )
     
 import argparse
@@ -33,6 +34,12 @@ parser.add_argument(
     required=True,
     type=int,
     help="topk clusters",
+)
+parser.add_argument(
+    "--targeted_num_states",
+    default=20,
+    type=int,
+    help="Number of total states at the end of training",
 )
 args = parser.parse_args()
 
@@ -54,7 +61,6 @@ n_iter = 10
 random_state=42
 num_init_states = 3
 init_first_state_prob = 1.0
-targeted_num_states = 10
 
 train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", args.topk_cluster)
 
@@ -107,32 +113,37 @@ model.emissionprob_ = emissionprobs
 model._do_mstep = _do_mstep.__get__(model, _do_mstep)
 
 state_idx2parent = OrderedDict([(i, None) for i in range(num_states)])
-state_transmat_info = {i: [] for i in range(num_states)}
+state_transmat_info = {i: [i] for i in range(num_states)}
 
 old_model = None
-for curr_iter in range(targeted_num_states-num_init_states+1):
+for curr_iter in range(args.targeted_num_states-num_init_states+1):
     print(f"***** current_iter = {curr_iter}; num_states = {num_states} *****")
 
-    state_emission_x_labels = get_emission_x_labels(state_idx2parent)
-
     emission_entropy = entropy(model.emissionprob_)
-    plot_bar(state_emission_x_labels, emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_before_training.eps"))
+    state_emission_x_labels = get_emission_x_labels(state_idx2parent, state_transmat_info)
+    ordered_emission_entropy = get_ordered_emission(emission_entropy, state_transmat_info)
+    plot_bar(state_emission_x_labels, ordered_emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_before_training.eps"))
     print(f"    Before training, entropy = {emission_entropy}")
     print(f"    Before training, average entropy = {np.mean(emission_entropy):.2f}")
 
     ordered_transmat = get_and_plot_ordered_transmat(model.transmat_, state_transmat_info, os.path.join(image_dir, f"transmat/{num_states}_before_training.eps"))
     print("    Before training, transmat = ")
+    print(model.transmat_)
+    print("    Before training, ordered transmat = ")
     print(ordered_transmat)
 
     # Training
     model = model.fit(xs, x_lens)
     
     emission_entropy = entropy(model.emissionprob_)
-    plot_bar(state_emission_x_labels, emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_after_training.eps"))
+    ordered_emission_entropy = get_ordered_emission(emission_entropy, state_transmat_info)
+    plot_bar(state_emission_x_labels, ordered_emission_entropy, os.path.join(image_dir, f"entropy/{num_states}_before_training.eps"))
     print(f"    After training, entropy = {emission_entropy}")
     print(f"    After training, average entropy = {np.mean(emission_entropy):.2f}")
     ordered_transmat = get_and_plot_ordered_transmat(model.transmat_, state_transmat_info, os.path.join(image_dir, f"transmat/{num_states}_after_training.eps"))
     print("    After training, transmat = ")
+    print(model.transmat_)
+    print("    After training, ordered transmat = ")
     print(ordered_transmat)
     print("    State_transmat_info = ", end="")
     print(state_transmat_info)
@@ -159,7 +170,9 @@ for curr_iter in range(targeted_num_states-num_init_states+1):
     ancester = state_idx2parent[new_state_idx]
     while state_idx2parent[ancester] is not None:
         ancester = state_idx2parent[ancester]
-    state_transmat_info[ancester].append(new_state_idx)
+
+    split_pos = state_transmat_info[ancester].index(split_idx) + 1
+    state_transmat_info[ancester].insert(split_pos, new_state_idx)
 
     startprob, _ = split_state_startprob(model.startprob_, split_idx)
     transmat, transmat_mask = split_state_transmat(model.transmat_, split_idx)
