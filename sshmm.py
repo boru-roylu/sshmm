@@ -63,10 +63,24 @@ def split_state_transmat(old, i):
     return new, mask
 
 
-def split_state_emission(old, i):
-    b = copy.deepcopy(old[i].tolist()) #((old[i-1] + old[i]) / 2).tolist()
-    new = old.tolist()
-    new.append(b)
+def split_state_emission(old, i, ordered_idxs, mixture):
+    old = copy.deepcopy(old)
+    new = copy.deepcopy(old).tolist()
+
+    pos = ordered_idxs.index(i)
+    #print("ordered_idxs", ordered_idxs)
+    #print("split", i)
+    #print("pos", pos)
+    #print("old", old)
+    mixture_b = old[ordered_idxs[pos]]
+    #print("self", mixture_b)
+    if mixture and (pos + 2 < len(ordered_idxs)):
+        #print("next", old[ordered_idxs[pos+2]])
+        mixture_b += old[ordered_idxs[pos+2]]
+        mixture_b /= 2
+    #print("mix", mixture_b)
+    mixture_b = mixture_b.tolist()
+    new.append(mixture_b)
     new = np.array(new)
     return new, None
 
