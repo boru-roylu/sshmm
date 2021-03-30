@@ -25,14 +25,23 @@ from utils import (
     get_emission_x_labels,
 )
     
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--topk_cluster",
+    required=True,
+    type=int,
+    help="topk clusters",
+)
+args = parser.parse_args()
 
 np.set_printoptions(precision=3)
 sns.set_style('darkgrid')
 sns.set(font_scale=0.7)
 
-topk_cluster = 30
-exp_dir = f"./exp/models_{topk_cluster}"
-image_dir = f"./images/models_{topk_cluster}"
+exp_dir = f"./exp/models_{args.topk_cluster}"
+image_dir = f"./images/models_{args.topk_cluster}"
 os.makedirs(exp_dir, exist_ok=True)
 os.makedirs(image_dir, exist_ok=True)
 os.makedirs(os.path.join(image_dir, "entropy"), exist_ok=True)
@@ -47,7 +56,7 @@ num_init_states = 3
 init_first_state_prob = 1.0
 targeted_num_states = 10
 
-train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", topk_cluster)
+train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", args.topk_cluster)
 
 print('vocab size = ', len(vocab))
 

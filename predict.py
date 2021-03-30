@@ -1,27 +1,19 @@
-import sys
-import copy
 import pickle
-import types
+import argparse
 import numpy as np
 import pandas as pd
-from sklearn.utils import check_random_state
-from functools import partial
-from pprint import pprint
 from tqdm import tqdm
-
-from hmmlearn import hmm
-from hmmlearn.utils import normalize
-
-import argparse
-
 from data import get_datasets
-from sshmm import _do_mstep, split_state_startprob, split_state_transmat, split_state_emission, entropy
 
 pd.options.display.max_colwidth = 150
 
-topk_cluster = 30
-
 parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--topk_cluster",
+    required=True,
+    type=int,
+    help="topk clusters",
+)
 parser.add_argument(
     "--model_path",
     required=True,
@@ -49,7 +41,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", topk_cluster)
+train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", args.topk_cluster)
 topk_cluster_ids = list(vocab.keys())
 vocab = {v: k for k, v in vocab.items()}
 print('vocab size = ', len(vocab))
@@ -58,7 +50,7 @@ with open(args.model_path, "rb") as f:
     model = pickle.load(f)
 
 df = pd.read_csv(args.centroid_path)
-raw_df = pd.read_csv(raw_path, compression="gzip")
+raw_df = pd.read_csv(args.raw_path, compression="gzip")
 
 xs = []
 ids = []
@@ -69,7 +61,7 @@ x_lens = [len(x) for x in xs]
 
 e = model.emissionprob_
 n_states, n_clusters = e.shape
-assert n_clusters == topk_cluster
+assert n_clusters == args.topk_cluster
 
 dfs = []
 for _id, x, x_len in tqdm(zip(ids, xs, x_lens), total=len(xs)):
