@@ -10,14 +10,13 @@ def _do_mstep(self, stats, s_mask=None, t_mask=None, e_mask=None):
 
     if 't' in self.params:
         transmat_ = np.maximum(self.transmat_prior - 1 + stats['trans'], 0)
-        if t_mask is not None:
-            transmat_ = np.where(t_mask == 1, transmat_, self.transmat_)
+        #if t_mask is not None:
+        #    transmat_ = np.where(t_mask == 1, transmat_, self.transmat_)
         self.transmat_ = np.where(self.transmat_ == 0, 0, transmat_)
         normalize(self.transmat_, axis=1)
 
     if 'e' in self.params:
-        self.emissionprob_ = (
-            stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
+        self.emissionprob_ = stats['obs'] / stats['obs'].sum(axis=1, keepdims=True)
 
 
 def split_state_startprob(old, i):
