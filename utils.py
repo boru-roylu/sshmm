@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from graphviz import Digraph
+import pdb
 
 from hmmlearn.utils import normalize
 
@@ -97,6 +99,29 @@ def topk_transmat(transmat, topk):
         normalize(transmat[i])
 
     return transmat
+
+def graph_topo(matrix, state_info):
+    dot = Digraph(comment='State Topo')
+    dot.attr(rankdir='LR')
+    dot.attr('node', shape='circle')
+
+    for t in range(matrix.shape[1]-1, -1, -1):
+        for r in range(matrix.shape[0]):
+            #pdb.set_trace()
+            if matrix[r, t] != 0.0:
+                prev = matrix[r, t]
+                dot.node(f"{t}",
+                        color="purple", fillcolor='#E6E6FA', style='filled')
+                dot.node(f"{r}",
+                        color="purple", fillcolor='#E6E6FA', style='filled')
+                dot.edge(f"{r}",
+                         f"{t}",
+                         label = "{:.3f}".format(matrix[r,t]),
+                         color='purple', penwidth="1.0")
+                #dot.nod(f"{matrix[
+
+    dot.render('/g/ssli/data/tmcalls/sshmm/transmat.gv', format='pdf', view=False)
+
 
 
 if __name__ == "__main__":

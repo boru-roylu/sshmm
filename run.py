@@ -3,6 +3,7 @@ import copy
 import types
 import numpy as np
 import seaborn as sns
+import pdb
 
 from hmmlearn import hmm
 from pprint import pprint
@@ -184,7 +185,9 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     print(ordered_transmat)
     print("    State_transmat_info = ", end="")
     print(state_transmat_info)
-
+    
+    model.state_transmat_info = state_transmat_info
+    model.ordered_transmat = ordered_transmat
     save_model(num_states, model, exp_dir)
 
     if old_model:
