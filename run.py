@@ -86,7 +86,6 @@ num_init_states = 3
 init_first_state_prob = 1.0
 
 train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", args.topk_cluster)
-
 print('vocab size = ', len(vocab))
 
 num_states = num_init_states
@@ -186,6 +185,7 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     print("    State_transmat_info = ", end="")
     print(state_transmat_info)
     
+    model.vocab = vocab
     model.state_transmat_info = state_transmat_info
     model.ordered_transmat = ordered_transmat
     save_model(num_states, model, exp_dir)

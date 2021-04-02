@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from graphviz import Digraph
+import math
 import pdb
 
 from hmmlearn.utils import normalize
@@ -100,27 +101,43 @@ def topk_transmat(transmat, topk):
 
     return transmat
 
-def graph_topo(matrix, state_info):
+def graph_topo(transmat, emissionprob, state_info, vocab, top_e):
     dot = Digraph(comment='State Topo')
     dot.attr(rankdir='LR')
     dot.attr('node', shape='circle')
-
-    for t in range(matrix.shape[1]-1, -1, -1):
-        for r in range(matrix.shape[0]):
-            #pdb.set_trace()
-            if matrix[r, t] != 0.0:
-                prev = matrix[r, t]
+    
+    for t in range(transmat.shape[1]-1, -1, -1):
+        for r in range(transmat.shape[0]):
+            if transmat[r, t] != 0.0:
+                #pdb.set_trace()
+                ep = emissionprob[t]
+                top_probs_idx = np.argsort(ep, )[-top_e:][::-1]
+                top_probs_clusters = [vocab[idx] for idx in top_probs_idx]
+                rep_utts = get_cluster_representative(top_probs_clusters)
+                to_display = ""
+                for i, p in enumerate(top_probs_idx):
+                    utt = rep_utts[i].split()
+                    utt_split = np.array_split(utt, math.ceil(len(utt) / 10))
+                    utt = "\l".join([' '.join(s) for s in list(utt_split)])
+                    to_display += f"cluster {vocab[p]} - " + "{:.5f}".format(ep[p]) + f":\l{utt}\l\n"
                 dot.node(f"{t}",
-                        color="purple", fillcolor='#E6E6FA', style='filled')
+                        f"{to_display}",
+                        color="purple", fillcolor='#E6E6FA', style='filled', shape='box')
                 dot.node(f"{r}",
-                        color="purple", fillcolor='#E6E6FA', style='filled')
+                        color="purple", fillcolor='#E6E6FA', style='filled', shape='box')
                 dot.edge(f"{r}",
                          f"{t}",
-                         label = "{:.3f}".format(matrix[r,t]),
+                         label = "{:.3f}".format(transmat[r,t]),
                          color='purple', penwidth="1.0")
                 #dot.nod(f"{matrix[
 
-    dot.render('/g/ssli/data/tmcalls/sshmm/transmat.gv', format='pdf', view=False)
+    dot.render('/g/ssli/data/tmcalls/sshmm/transmat_uo.gv', format='pdf', view=False)
+
+def get_cluster_representative(cluster_ids):
+    df = pd.read_csv('/g/ssli/data/tmcalls/clustering_data/clustering/medoid_centers.csv')
+    df = df[df.cluster.isin(cluster_ids)].reindex(cluster_ids)
+    rep_utts = df.phrase.tolist()
+    return rep_utts
 
 
 
