@@ -11,7 +11,6 @@ class GraphTopo:
         self.load_model()
         self.graph_transmat()
 
-
     def load_model(self):
         with open(f'./exp/models_30/{self.n_states}.pkl', 'rb') as f:
             self.model = pickle.load(f)
