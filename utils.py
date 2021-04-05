@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from graphviz import Digraph
 import math
 import pdb
+import textwrap
 
 from hmmlearn.utils import normalize
 
@@ -150,8 +151,15 @@ def plotHMM(model):
         match_ids (list): list of ids that would correspond match states
         delete_ids (list): list of ids that would correspond delete states
         insert_ids (list): list of ids that would correspond insert states
-        match_emissionprobs (dict): dictionary of the form {state_id:{symbol:float,symbolB: float}}
+        match_emissionprobs (dict): dictionary of the form {state_id:{cluster:float,clusterB: float}}
     """
+
+    df = pd.read_csv('./raw_data/150/medoid_centers.csv')
+    df['cluster'] = df['cluster'].astype(str)
+    cluster2utt = dict(zip(df.cluster, df.phrase))
+
+    match_topk = 5
+    insert_topk = 5
 
     dic = json.loads(model.to_json())
     match_ids, delete_ids, insert_ids = [], [], []
@@ -175,22 +183,20 @@ def plotHMM(model):
     for e in dic['edges']:
         edges.append((idx2names[e[0]], idx2names[e[1]], e[2]))
 
-
-
     g = Digraph('G', filename='cluster.gv', format="pdf", engine="dot")
 
     c0 = Digraph('cluster_0')
     c0.body.append('style=filled')
     c0.body.append('color=white')
     c0.attr('node', shape='box')
-    c0.node_attr.update(color = 'orange', style='filled')
-    match_ids_without_StartEnd = match_ids[:]
+    c0.node_attr.update(color='orange', style='filled')
 
+    match_ids_without_start_end = match_ids[:]
     index = match_ids.index("Conversation HMM-end")
-    match_ids_without_StartEnd.pop(index)
-
+    match_ids_without_start_end.pop(index)
     index = match_ids.index("Conversation HMM-start")
-    match_ids_without_StartEnd.pop(index)
+    match_ids_without_start_end.pop(index)
+
     for match_id in match_ids:
         c0.node(match_id)
 
@@ -198,7 +204,7 @@ def plotHMM(model):
     c1.body.append('style=filled')
     c1.body.append('color=white')
     c1.attr('node', shape='doubleoctagon')
-    c1.node_attr.update(color = "orange",penwidth="1")
+    c1.node_attr.update(color="orange", penwidth="1")
     for insert_id in insert_ids:
         c1.node(insert_id)
     c1.edge_attr.update(color='white')
@@ -208,8 +214,8 @@ def plotHMM(model):
     c2 = Digraph('cluster_2')
     c2.body.append('style=filled')
     c2.body.append('color=white')
-    c2.attr('node', shape = 'circle')
-    c2.node_attr.update(color = "orange",penwidth = "2")
+    c2.attr('node', shape='circle')
+    c2.node_attr.update(color="orange", penwidth="2")
     for delete_id in delete_ids:
         c2.node(delete_id)
 
@@ -220,18 +226,19 @@ def plotHMM(model):
     c3.attr('node', shape='box')
     c3.node_attr.update(color='white', style='filled',fontsize="14")
 
-    mIds = [""]
-    for m in match_ids_without_StartEnd:
-        s = f"{m}\n"
-        for symbol, prob in sorted(match_emissionprobs[m].items(), key=lambda x: x[1], reverse=True)[:5]:
-            s += f"{symbol} {prob:.4f}\n"
-        mIds.append(s)
+    mids = [""]
+    for m in match_ids_without_start_end:
+        s = [f"{m}"]
+        for cluster, prob in sorted(match_emissionprobs[m].items(), key=lambda x: x[1], reverse=True)[:match_topk]:
+            s.append(f'cluster = {cluster}; prob = {prob:.4f}')
+            s.append("\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40)))
+        mids.append("\l".join(s))
 
     c3.edge_attr.update(color='white')
-    for mid in mIds:
+    for mid in mids:
         c3.node(mid)
-    for i in range(len(mIds)-1):
-        c3.edge(mIds[i], mIds[i+1])
+    for i in range(len(mids)-1):
+        c3.edge(mids[i], mids[i+1])
 
     # insert emission
     c4 = Digraph('cluster_4')
@@ -242,10 +249,11 @@ def plotHMM(model):
 
     iids = [""]
     for i in insert_ids:
-        s = f"{i}\n"
-        for symbol, prob in sorted(insert_emissionprobs[i].items(), key=lambda x: x[1], reverse=True)[:5]:
-            s += f"{symbol} {prob:.4f}\n"
-        iids.append(s)
+        s = [f"{i}"]
+        for cluster, prob in sorted(insert_emissionprobs[i].items(), key=lambda x: x[1], reverse=True)[:insert_topk]:
+            s.append(f'cluster = {cluster}; prob = {prob:.4f}')
+            s.append("\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40)))
+        iids.append("\l".join(s))
 
     c4.edge_attr.update(color='white')
     for iid in iids:

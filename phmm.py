@@ -18,7 +18,6 @@ def init_model(xs, num_m_states, count, init_threshold):
 
     # Define the distribution for insertion states
     global_emission_probs = normalize(count)
-    i_d = DiscreteDistribution(global_emission_probs)
 
     # Define the distribution for match states
     segment_ratios = [0.05]
@@ -46,15 +45,20 @@ def init_model(xs, num_m_states, count, init_threshold):
 
     m_states = []
     d_states = []
-    i_states = [State(i_d, name=f"I0")]
+    i_d = DiscreteDistribution(global_emission_probs)
+    i_states = [State(i_d, name=f"I00")]
     for k in range(num_m_states):
-        i = State(i_d, name=f"I{k+1}")
+
+        #if k % 5 == 0 and k != 0:
+        #    i_d = DiscreteDistribution(global_emission_probs)
+
+        i = State(i_d, name=f"I{k+1:02}")
         i_states.append(i)
 
-        m = State(DiscreteDistribution(emissionprobs[k]), name=f"M{k+1}")
+        m = State(DiscreteDistribution(emissionprobs[k]), name=f"M{k+1:02}")
         m_states.append(m)
 
-        d = State(None, name=f"D{k+1}")
+        d = State(None, name=f"D{k+1:02}")
         d_states.append(d)
 
     model.add_states(i_states + m_states + d_states)
@@ -127,6 +131,8 @@ def ints2str(ints, mapping=None):
 
 if __name__ == '__main__':
     num_clusters = 100
+    num_match_states = 6
+
     train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", 100)
     print('vocab size = ', len(vocab))
 
@@ -141,10 +147,10 @@ if __name__ == '__main__':
 
     init_threshold = int(np.mean(x_lens))
 
-    model = init_model(xs, 6, cnt, init_threshold=init_threshold)
+    model = init_model(xs, num_match_states, cnt, init_threshold=init_threshold)
 
     print('Start training')
-    model.fit(xs, algorithm='baum-welch',stop_threshold=0.001, max_iterations=10, verbose=True, n_jobs=os.cpu_count()-2)
+    model.fit(xs, algorithm='baum-welch',stop_threshold=0.001, max_iterations=20, verbose=True, n_jobs=os.cpu_count()-2)
 
     plotHMM(model)
 
@@ -157,7 +163,6 @@ if __name__ == '__main__':
         s_str = ' '.join(f"{state.name:>3}" for _, state in path[1:-1])
         print(f"Path:     {s_str}")
         print()
-    exit()
 
     mapping = {k: chr(i) for i, k in enumerate(cnt.keys(), start=200)}
     mapping[-1] = '-'
