@@ -130,10 +130,10 @@ def ints2str(ints, mapping=None):
 
 
 if __name__ == '__main__':
-    num_clusters = 100
+    num_clusters = 50
     num_match_states = 6
 
-    train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", 100)
+    train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", num_clusters)
     print('vocab size = ', len(vocab))
 
     xs = []
@@ -153,6 +153,8 @@ if __name__ == '__main__':
     model.fit(xs, algorithm='baum-welch',stop_threshold=0.001, max_iterations=20, verbose=True, n_jobs=os.cpu_count()-2)
 
     plotHMM(model)
+
+    exit()
 
     for x in xs[:100]:
         logp, path = model.viterbi(x)
