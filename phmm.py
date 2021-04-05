@@ -7,6 +7,8 @@ from data2 import get_datasets
 
 from pomegranate import *
 
+from utils import plotHMM
+
 def normalize(dic):
     _sum = sum(dic.values())
     return {k: v/_sum for k, v in dic.items()}
@@ -143,6 +145,8 @@ if __name__ == '__main__':
 
     print('Start training')
     model.fit(xs, algorithm='baum-welch',stop_threshold=0.001, max_iterations=10, verbose=True, n_jobs=os.cpu_count()-2)
+
+    plotHMM(model)
 
     for x in xs[:100]:
         logp, path = model.viterbi(x)
