@@ -64,7 +64,7 @@ def init_model(xs, num_m_states, count, init_threshold):
 
     for i in range(num_m_states-1):
         model.add_transition(m_states[i], m_states[i+1], 0.9)
-        model.add_transition(m_states[i], i_states[i], 0.05)
+        model.add_transition(m_states[i], i_states[i+1], 0.05)
         model.add_transition(m_states[i], d_states[i+1], 0.05)
 
     model.add_transition(m_states[-1], model.end, 0.9)
@@ -83,7 +83,7 @@ def init_model(xs, num_m_states, count, init_threshold):
     # Create transitions from delete states
     for i in range(num_m_states-1):
         model.add_transition(d_states[i], d_states[i+1], 0.15)
-        model.add_transition(d_states[i], i_states[i], 0.15) 
+        model.add_transition(d_states[i], i_states[i+1], 0.15) 
         model.add_transition(d_states[i], m_states[i+1], 0.70)
 
     model.add_transition(d_states[-1], i_states[-1], 0.3)
@@ -95,7 +95,7 @@ def init_model(xs, num_m_states, count, init_threshold):
     return model
 
 
-def path_to_alignment( x, y, path ):
+def path_to_alignment(x, y, path):
     """
     This function will take in two sequences, and the ML path which is their alignment,
     and insert dashes appropriately to make them appear aligned. This consists only of
@@ -103,15 +103,24 @@ def path_to_alignment( x, y, path ):
     a dash in the observed sequence for every delete in the path appropriately.
     """
 
-    for i, (index, state) in enumerate( path[1:-1] ):
+    for i, (index, state) in enumerate(path[1:-1]):
         name = state.name
 
         if name.startswith('D'):
-            y = y[:i] + ['-'] + y[i:]
+            y = y[:i] + [-1] + y[i:]
         elif name.startswith('I'):
-            x = x[:i] + ['-'] + x[i:]
+            x = x[:i] + [-1] + x[i:]
 
     return x, y
+
+def ints2str(ints, mapping=None):
+    string = ''
+    for i in ints:
+        if mapping:
+            string += f" {mapping[i]}"
+        else:
+            string += f" {i:>3}"
+    return string
 
 
 if __name__ == '__main__':
@@ -124,26 +133,41 @@ if __name__ == '__main__':
     for x, _id in train_dataset:
         xs.append(x)
         ids.append(_id)
-    xs = xs[:100]
-    ids = ids[:100]
+    xs = xs
+    ids = ids
     x_lens = [len(x) for x in xs]
 
     init_threshold = int(np.mean(x_lens))
 
-    model = init_model(xs, 10, cnt, init_threshold=init_threshold)
+    model = init_model(xs, 6, cnt, init_threshold=init_threshold)
 
     print('Start training')
-    model.fit(xs, algorithm='baum-welch',stop_threshold=0.001, verbose=True, n_jobs=os.cpu_count()-2)
+    model.fit(xs, algorithm='baum-welch',stop_threshold=0.001, max_iterations=10, verbose=True, n_jobs=os.cpu_count()-2)
 
-    #for x in xs:
-    #    logp, path = model.viterbi(x)
-    #    print(f"Sequence: {x}  -- Log Probability: {logp} -- Path: {' '.join( state.name for idx, state in path[1:-1])}")
+    for x in xs[:100]:
+        logp, path = model.viterbi(x)
+        x = x.tolist()
+        print(f"Log Probability: {logp}")
+        x_str = ' '.join(f"{xx:>3}" for xx in x)
+        print(f"Sequence: {x_str}")
+        s_str = ' '.join(f"{state.name:>3}" for _, state in path[1:-1])
+        print(f"Path:     {s_str}")
+        print()
+    exit()
 
+    mapping = {k: chr(i) for i, k in enumerate(cnt.keys(), start=200)}
+    mapping[-1] = '-'
     for x in xs[1:]:
         logp, path = model.viterbi(x)
-        x, y = path_to_alignment(xs[0], x, path)
-    
-        print("Sequence: {}, Log Probability: {}".format( ''.join(sequence), logp ))
-        print("{}\n{}".format(x, y))
-        print()
+        x2, y = path_to_alignment(xs[0].tolist(), x.tolist(), path)
 
+        x = ints2str(x.tolist())
+        x2 = ints2str(x2)#, mapping)
+        y = ints2str(y)#, mapping)
+        print(f"Log Probability: {logp}")
+        print(f"Sequence:")
+        print(x)
+        print(x2)
+        print()
+        print(y)
+        print()
