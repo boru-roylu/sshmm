@@ -142,7 +142,7 @@ model = hmm.MultinomialHMM(n_components=num_states, init_params="",
 model.startprob_ = startprob
 model.transmat_ = transmat
 model.emissionprob_ = emissionprobs
-model._do_mstep = _do_mstep.__get__(model, _do_mstep)
+#model._do_mstep = _do_mstep.__get__(model, _do_mstep)
 
 state_idx2parent = OrderedDict([(i, None) for i in range(num_states)])
 state_transmat_info = defaultdict(list) #{i: [i] for i in range(num_states)}
@@ -188,6 +188,7 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     model.vocab = vocab
     model.state_transmat_info = state_transmat_info
     model.ordered_transmat = ordered_transmat
+    model.transmat_ = topk_transmat(model.transmat_, args.topk_trans)
     save_model(num_states, model, exp_dir)
 
     if old_model:
@@ -217,9 +218,9 @@ for curr_iter in range(args.targeted_num_states-num_init_states+1):
     model = hmm.MultinomialHMM(n_components=num_states, init_params="",
                                n_iter=n_iter, verbose=True)
 
-    _do_mstep = partial(_do_mstep, t_mask=transmat_mask)
-    funcType = types.MethodType
-    model._do_mstep = funcType(_do_mstep, model) 
+    #_do_mstep = partial(_do_mstep, t_mask=transmat_mask)
+    #funcType = types.MethodType
+    #model._do_mstep = funcType(_do_mstep, model) 
 
     model.startprob_ = startprob
     if args.topk_trans != 0:
