@@ -42,8 +42,7 @@ if __name__ == '__main__':
     print('Start training')
     print(f'********** iteration 0 **********')
     print(f'num_states = {num_states}; num_temperal_split = {num_temperal_split}')
-    model.fit(xs, algorithm='baum-welch', emission_pseudocount=1, stop_threshold=0.001, max_iterations=15, verbose=True, n_jobs=os.cpu_count()-2)
-    #model.fit(xs, algorithm='baum-welch', stop_threshold=0.001, max_iterations=max_iterations, verbose=True, n_jobs=os.cpu_count()-2)
+    model.fit(xs, algorithm='baum-welch', emission_pseudocount=1, stop_threshold=0.001, max_iterations=max_iterations, verbose=True, n_jobs=os.cpu_count()-2)
     plot_shmm(model, image_path=os.path.join(image_dir, f'shmm_{num_states}'))
     for iteration in range(num_split):
 

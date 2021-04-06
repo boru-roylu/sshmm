@@ -93,8 +93,7 @@ def temperal_split(model_json, split_state, state2child, num_temperal_split):
     named_edges = get_named_edges(model_json)
     state2emissionprob, dummy_states = get_states(model_json)
 
-    #new = f"T{num_temperal_split+1:02} <- {split_state}"
-    new = f"T{num_temperal_split+1:02}"
+    new = f"T{num_temperal_split+1:02} <- {split_state}"
     child = state2child[split_state]
     state2child[new] = child
 
@@ -147,18 +146,19 @@ def plot_shmm(model, image_path):
     c0.body.append('style=filled')
     c0.body.append('color=white')
     c0.attr('node', shape='box')
-    c0.node_attr.update(color='orange', style='filled',fontsize="14")
+    c0.node_attr.update(color='#D0F0FB', style='filled',fontsize="14")
+    c0.edge_attr.update(color='#076789', fontsize="12")
 
     state2topk_clusters = OrderedDict()
     for name, ep in state2emissionprob.items():
-        string = [name]
+        string = name + "\n"
         topk = sorted(ep.items(), key=lambda x: x[1], reverse=True)[:emission_topk]
         for cluster, prob in topk:
-            string.append(f'cluster = {cluster}; prob = {prob:.4f}')
-            string.append("\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40)))
-        state2topk_clusters[name] = "\l".join(string)
+            string += f'cluster = {cluster}; prob = {prob:.4f}\l'
+            string += "\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40))
+            string += "\l"
+        state2topk_clusters[name] = string
 
-    c0.edge_attr.update(color='orange')
 
     for s in dummy_states:
         c0.node(s)
