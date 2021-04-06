@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 from collections import Counter, OrderedDict
 from graphviz import Digraph
@@ -17,11 +16,6 @@ def normalize(dic):
 def create_model(states, edges, model):
     model.add_states(states)
     for e in edges:
-        e = list(e)
-        #if 'start' in e[0].name:
-        #    e[0] = model.start
-        #if 'end' in e[1].name:
-        #    e[1] = model.end
         model.add_transition(*e)
     # Call bake to finalize the structure of the model.
     model.bake()
@@ -99,16 +93,19 @@ def temperal_split(model_json, split_state, state2child, num_temperal_split):
     named_edges = get_named_edges(model_json)
     state2emissionprob, dummy_states = get_states(model_json)
 
-    new = f"T{num_temperal_split+1:02} <- {split_state}"
+    #new = f"T{num_temperal_split+1:02} <- {split_state}"
+    new = f"T{num_temperal_split+1:02}"
     child = state2child[split_state]
     state2child[new] = child
-    state2emissionprob[new] = copy.deepcopy(state2emissionprob[split_state])
 
     model = HiddenMarkovModel(name="Conversation HMM")
     # n2s: name2state
     n2s = {}
     for name, ep in state2emissionprob.items(): 
+        ep = {int(k): v for k, v in ep.items()}
         n2s[name] = State(DiscreteDistribution(ep), name=name)
+        if name == split_state:
+            n2s[new] = State(DiscreteDistribution(ep), name=new)
     n2s[model.start.name] = model.start
     n2s[model.end.name] = model.end
 
