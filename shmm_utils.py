@@ -91,13 +91,14 @@ def init_model(xs, num_init_states, count, init_threshold):
 
 def temperal_split(model_json, split_state, state2child, num_temperal_split):
     named_edges = get_named_edges(model_json)
-    state2emissionprob, dummy_states = get_states(model_json)
+    state2emissionprob, _ = get_states(model_json)
 
     new = f"T{num_temperal_split+1:02} <- {split_state}"
     child = state2child[split_state]
     state2child[new] = child
 
     model = HiddenMarkovModel(name="Conversation HMM")
+
     # n2s: name2state
     n2s = {}
     for name, ep in state2emissionprob.items(): 
@@ -108,6 +109,7 @@ def temperal_split(model_json, split_state, state2child, num_temperal_split):
     n2s[model.start.name] = model.start
     n2s[model.end.name] = model.end
 
+    # temperal split
     new_named_edges = []
     for i, j, prob in named_edges:
         if i == split_state:
@@ -121,6 +123,51 @@ def temperal_split(model_json, split_state, state2child, num_temperal_split):
                     new_named_edges.append((n2s[new], n2s[new], prob))
                 else:
                     new_named_edges.append((n2s[new], n2s[j], prob))
+        else:
+            new_named_edges.append((n2s[i], n2s[j], prob))
+
+    model = create_model(list(n2s.values()), new_named_edges, model)
+
+    return model, state2child
+
+
+def vertical_split(model_json, split_state, state2child, num_vertical_split):
+    named_edges = get_named_edges(model_json)
+    state2emissionprob, _ = get_states(model_json)
+
+    new = f"V{num_vertical_split+1:02} <- {split_state}"
+    child = state2child[split_state]
+    state2child[new] = child
+
+    model = HiddenMarkovModel(name="Conversation HMM")
+
+    # n2s: name2state
+    n2s = {}
+    for name, ep in state2emissionprob.items(): 
+        ep = {int(k): v for k, v in ep.items()}
+        n2s[name] = State(DiscreteDistribution(ep), name=name)
+        if name == split_state:
+            max_prob_cluster = max(ep.items(), key=lambda x: x[1])[0]
+            ep[max_prob_cluster] = 0
+            n2s[new] = State(DiscreteDistribution(ep), name=new)
+    n2s[model.start.name] = model.start
+    n2s[model.end.name] = model.end
+
+    # vertical split
+    new_named_edges = []
+    for i, j, prob in named_edges:
+        if i == split_state:
+            # self loop
+            if j == split_state:
+                new_named_edges.append((n2s[i], n2s[i], prob))
+                new_named_edges.append((n2s[new], n2s[new], prob))
+            else:
+                new_named_edges.append((n2s[i], n2s[j], prob))
+                new_named_edges.append((n2s[new], n2s[j], prob))
+
+        elif j == split_state:
+            new_named_edges.append((n2s[i], n2s[j], prob/2))
+            new_named_edges.append((n2s[i], n2s[new], prob/2))
         else:
             new_named_edges.append((n2s[i], n2s[j], prob))
 
