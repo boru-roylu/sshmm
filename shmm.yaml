@@ -1,0 +1,7 @@
+commands:
+    - conda activate hmm 
+    - python shmm.py $(num_clusters)
+
+params:
+    - name: num_clusters
+      values: [30, 50, 100, 150]

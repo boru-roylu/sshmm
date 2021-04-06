@@ -139,10 +139,10 @@ def plot_shmm(model, image_path):
 
     state2emissionprob, dummy_states = get_states(model_json)
 
-    g = Digraph('G', filename='cluster.gv', format="pdf", engine="dot")
+    g = Digraph('G', engine="dot")
 
     # match emission
-    c0 = Digraph('cluster_3')
+    c0 = Digraph('cluster_0')
     c0.body.append('style=filled')
     c0.body.append('color=white')
     c0.attr('node', shape='box')
@@ -156,7 +156,7 @@ def plot_shmm(model, image_path):
         for cluster, prob in topk:
             string += f'cluster = {cluster}; prob = {prob:.4f}\l'
             string += "\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40))
-            string += "\l"
+            string += "\l\l"
         state2topk_clusters[name] = string
 
 
@@ -177,6 +177,6 @@ def plot_shmm(model, image_path):
     #the graph is basicaly split in 4 clusters
     g.subgraph(c0)
 
-    g.edge_attr.update(arrowsize='0.5')
+    g.edge_attr.update(arrowsize='1')
     g.body.extend(['rankdir=LR', 'size="160,100"'])
     g.render(image_path, format='pdf')

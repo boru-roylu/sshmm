@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import numpy as np
 
@@ -10,7 +11,7 @@ from utils import save_model, get_states, normalize, entropy, get_named_edges
 from shmm_utils import init_model, plot_shmm, temperal_split
 
 if __name__ == '__main__':
-    num_clusters = 50
+    num_clusters = int(sys.argv[1])
     num_init_states = 3
     num_split = 12
     max_iterations = 10
@@ -43,7 +44,7 @@ if __name__ == '__main__':
     print(f'********** iteration 0 **********')
     print(f'num_states = {num_states}; num_temperal_split = {num_temperal_split}')
     model.fit(xs, algorithm='baum-welch', emission_pseudocount=1, stop_threshold=0.001, max_iterations=max_iterations, verbose=True, n_jobs=os.cpu_count()-2)
-    plot_shmm(model, image_path=os.path.join(image_dir, f'shmm_{num_states}'))
+    plot_shmm(model, image_path=os.path.join(image_dir, f'shmm_{num_states:02}'))
     for iteration in range(num_split):
 
         print(f'********** iteration {iteration+1} **********')
@@ -57,7 +58,7 @@ if __name__ == '__main__':
         print(f'num_states = {num_states}; num_temperal_split = {num_temperal_split}')
 
         model.fit(xs, algorithm='baum-welch', stop_threshold=0.001, max_iterations=max_iterations, verbose=True, n_jobs=os.cpu_count()-2)
-        plot_shmm(model, image_path=os.path.join(image_dir, f'shmm_{num_states}'))
+        plot_shmm(model, image_path=os.path.join(image_dir, f'shmm_{num_states:02}'))
         save_model(num_states, model, exp_dir)
 
     exit()
