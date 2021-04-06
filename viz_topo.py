@@ -5,9 +5,9 @@ import pickle
 import pdb
 
 class GraphTopo:
-    def __init__(self):
+    def __init__(self, n_states):
         self.top_e = 5
-        self.n_states = 15
+        self.n_states = n_states
         self.load_model()
         self.graph_transmat()
 
@@ -20,8 +20,12 @@ class GraphTopo:
         print(self.model.ordered_transmat)
         print(self.model.state_transmat_info)
         vocab = {y:x for x,y in self.model.vocab.items()}
-        graph = graph_topo(self.model.transmat_, self.model.emissionprob_, self.model.state_transmat_info, vocab, self.top_e)
+        dot = graph_topo(self.model.transmat_, self.model.emissionprob_,
+                           self.model.state_transmat_info, vocab, self.top_e)
+        dot.render(f'./topology/sshmm/sshmm_{self.n_states}states', format='pdf', view=False)
 
 
 if __name__ == '__main__':
-    GraphTopo()
+
+    for num_s in range(3, 16):
+        GraphTopo(num_s)

@@ -8,10 +8,18 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from graphviz import Digraph
 import math
-import pdb
 import textwrap
 
 from hmmlearn.utils import normalize
+
+from collections import OrderedDict
+
+def entropy(prob):
+    if isinstance(prob, list):
+        prob = np.array(prob)
+    log_prob = np.log2(np.clip(prob, 1e-12, 1))
+    e = -np.sum(prob * log_prob, axis=prob.ndim-1)
+    return e
 
 
 def trace(state_transmat_info, i):
@@ -138,36 +146,8 @@ def graph_topo(transmat, emissionprob, state_info, vocab, top_e):
                          f"{j:02}",
                          label = f"{prob:.3f}",
                          color='purple', penwidth="1.0")
-    dot.render('./sshmm', format='pdf', view=False)
+    return dot
 
-
-
-
-    
-    #for t in range(transmat.shape[1]-1, -1, -1):
-    #    for r in range(transmat.shape[0]):
-    #        if transmat[r, t] != 0.0:
-    #            ep = emissionprob[t]
-    #            top_probs_idx = np.argsort(ep, )[-top_e:][::-1]
-    #            top_probs_clusters = [vocab[idx] for idx in top_probs_idx]
-    #            rep_utts = get_cluster_representative(top_probs_clusters)
-    #            to_display = ""
-    #            for i, p in enumerate(top_probs_idx):
-    #                utt = rep_utts[i].split()
-    #                utt_split = np.array_split(utt, math.ceil(len(utt) / 10))
-    #                utt = "\l".join([' '.join(s) for s in list(utt_split)])
-    #                to_display += f"cluster {vocab[p]} - " + "{:.5f}".format(ep[p]) + f":\l{utt}\l\n"
-    #            dot.node(f"{t}",
-    #                     f"{to_display}",
-    #                    color="purple", fillcolor='#E6E6FA', style='filled', shape='box')
-    #            dot.node(f"{r}",
-    #                    color="purple", fillcolor='#E6E6FA', style='filled', shape='box')
-    #            dot.edge(f"{r}",
-    #                     f"{t}",
-    #                     label = "{:.3f}".format(transmat[r,t]),
-    #                     color='purple', penwidth="1.0")
-
-    #dot.render('./sshmm', format='pdf', view=False)
 
 def get_cluster_representative(cluster_ids):
     df = pd.read_csv('./raw_data/150/medoid_centers.csv')
@@ -176,7 +156,7 @@ def get_cluster_representative(cluster_ids):
     return rep_utts
 
 
-def plotHMM(model):
+def plot_phmm(model, image_path):
     """ Plot a profile-HMM based on its structure using graphviz.
     There's not guarantee that the ouput would be visualy informative for
     HMMs with many states.
@@ -291,9 +271,9 @@ def plotHMM(model):
 
     c4.edge_attr.update(color='white')
     for iid in iids:
-        c3.node(iid)
+        c4.node(iid)
     for i in range(len(iids)-1):
-        c3.edge(iids[i], iids[i+1])
+        c4.edge(iids[i], iids[i+1])
 
 
     #the graph is basicaly split in 4 clusters
@@ -311,8 +291,31 @@ def plotHMM(model):
     #g.node('Global Sequence Aligner-end', shape='box')
     g.edge_attr.update(arrowsize='0.5')
     g.body.extend(['rankdir=LR', 'size="160,100"'])
-    g.render('123', format='pdf')
+    g.render(image_path, format='pdf')
 
+
+def get_states(model_json):
+    state2emissionprob = OrderedDict()
+    dummy_states = []
+    for s in model_json['states']:
+        n = s['name']
+        if 'start' in n or 'end' in n:
+            dummy_states.append(n)
+        else:
+            state2emissionprob[n] = s['distribution']['parameters'][0]
+    return state2emissionprob, dummy_states
+
+
+def get_named_edges(model_json):
+    idx2names = {i: s['name'] for i, s in enumerate(model_json['states'])}
+
+    named_edges = []
+    for e in model_json['edges']:
+        i = idx2names[e[0]]
+        j = idx2names[e[1]]
+        prob = e[2]
+        named_edges.append([i, j, prob])
+    return named_edges
 
 
 if __name__ == "__main__":
