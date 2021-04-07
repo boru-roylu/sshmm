@@ -295,27 +295,36 @@ def plot_phmm(model, image_path):
 
 
 def get_states(model_json):
-    state2emissionprob = OrderedDict()
     dummy_states = []
+    state2emissionprob = OrderedDict()
+    insert_state2emissionprob = OrderedDict()
     for s in model_json['states']:
         n = s['name']
         if 'start' in n or 'end' in n:
             dummy_states.append(n)
+        elif n[0] == 'I':
+            insert_state2emissionprob[n] = s['distribution']['parameters'][0]
         else:
             state2emissionprob[n] = s['distribution']['parameters'][0]
-    return state2emissionprob, dummy_states
+    return state2emissionprob, insert_state2emissionprob, dummy_states
 
 
 def get_named_edges(model_json):
     idx2names = {i: s['name'] for i, s in enumerate(model_json['states'])}
 
     named_edges = []
+    insert_named_edges = []
     for e in model_json['edges']:
         i = idx2names[e[0]]
         j = idx2names[e[1]]
         prob = e[2]
-        named_edges.append([i, j, prob])
-    return named_edges
+
+        if i[0] == 'I':
+            insert_named_edges.append([i, j, prob])
+        else:
+            named_edges.append([i, j, prob])
+
+    return named_edges, insert_named_edges
 
 
 if __name__ == "__main__":
