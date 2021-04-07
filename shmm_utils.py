@@ -29,8 +29,6 @@ def create_model(states, edges, model):
 
 
 def init_model(xs, num_init_states, count, init_threshold):
-    # Define the distribution for insertion states
-    global_emission_prob = normalize(count)
 
     # Define the distribution for match states
     segment_ratios = [0.05]
@@ -56,7 +54,12 @@ def init_model(xs, num_init_states, count, init_threshold):
         eprobs = normalize(eprobs)
         emissionprobs.append(eprobs)
 
-    # tie distribution
+    # Define the distribution for insertion states
+    for k, v in sorted(count.items(), key=lambda x: x[1], reverse=True)[:4]:
+        count[k] = 1
+    for k in [140, 114, 142, 45]:
+        count[k] = 1
+    global_emission_prob = normalize(count)
     i_d = DiscreteDistribution(global_emission_prob)
     states = []
     insert_states = []
@@ -66,6 +69,7 @@ def init_model(xs, num_init_states, count, init_threshold):
         states.append(s)
 
         i_name = f"I@{s_name}"
+        # tie distribution
         s = State(i_d, name=i_name)
         insert_states.append(s)
 
@@ -311,7 +315,7 @@ def plot_shmm(model, state2child, image_path):
     sn2ep = list(state2emissionprob.items()) + list(insert_state2emissionprob.items())
     for name, ep in sn2ep:
         if name[0] == 'I':
-            _emission_topk = 3
+            _emission_topk = 20
         else:
             _emission_topk = emission_topk
         string = name + "\n"

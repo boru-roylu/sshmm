@@ -1,7 +1,10 @@
 commands:
     - conda activate hmm 
-    - python shmm.py $(num_clusters)
+    - python shmm.py $(num_clusters) $(topk_outgoing)
 
 params:
     - name: num_clusters
       values: [30, 50, 100, 150]
+
+    - name: topk_outgoing
+      values: [7, 10, 999]

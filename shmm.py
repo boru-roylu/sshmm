@@ -12,13 +12,14 @@ from shmm_utils import init_model, plot_shmm, temporal_split, vertical_split
 
 
 num_clusters = int(sys.argv[1])
+topk_outgoing = int(sys.argv[2])
 num_init_states = 3
 num_split = 12
 max_iterations = 10
 
-exp_dir = f"./exp/shmm_debug/{num_clusters}"
+exp_dir = f"./exp/shmm_tv_insert/{num_clusters}_{topk_outgoing}"
 os.makedirs(exp_dir, exist_ok=True)
-image_dir = f"./images/shmm_debug/{num_clusters}"
+image_dir = f"./images/shmm_tv_insert/{num_clusters}_{topk_outgoing}"
 os.makedirs(image_dir, exist_ok=True)
 
 train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", num_clusters)
@@ -58,8 +59,8 @@ for iteration in range(num_split):
     model_json = json.loads(model.to_json())
     state2emissionprob, _, _ = get_states(model_json)
     max_entropy_state = max(state2emissionprob.items(), key=lambda x: entropy(list(x[1].values())))[0]
-    t_model, t_state2child = temporal_split(model_json, max_entropy_state, state2child, num_temporal_split, topk_outgoing=5)
-    v_model, v_state2child = vertical_split(model_json, max_entropy_state, state2child, num_vertical_split, topk_outgoing=5)
+    t_model, t_state2child = temporal_split(model_json, max_entropy_state, state2child, num_temporal_split, topk_outgoing=topk_outgoing)
+    v_model, v_state2child = vertical_split(model_json, max_entropy_state, state2child, num_vertical_split, topk_outgoing=topk_outgoing)
 
     print("    Try temporal split")
     t_model.fit(xs, algorithm='baum-welch', emission_pseudocount=1, stop_threshold=20,
