@@ -16,9 +16,9 @@ num_init_states = 3
 num_split = 12
 max_iterations = 10
 
-exp_dir = f"./exp/shmm_tv/{num_clusters}"
+exp_dir = f"./exp/shmm_tv_global_ep_for_v/{num_clusters}"
 os.makedirs(exp_dir, exist_ok=True)
-image_dir = f"./images/shmm_tv/{num_clusters}"
+image_dir = f"./images/shmm_tv_global_ep_for_v/{num_clusters}"
 os.makedirs(image_dir, exist_ok=True)
 
 train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", num_clusters)
@@ -52,14 +52,14 @@ plot_shmm(model, image_path=os.path.join(image_dir, f'shmm_{num_states:02}'))
 
 for iteration in range(num_split):
 
-    print(f'*'*20, 'iteration {iteration+1}', '*'*20)
+    print(f'*'*20, f'iteration {iteration+1}', '*'*20)
 
 
     model_json = json.loads(model.to_json())
     state2emissionprob, _ = get_states(model_json)
     max_entropy_state = max(state2emissionprob.items(), key=lambda x: entropy(list(x[1].values())))[0]
     t_model, t_state2child = temperal_split(model_json, max_entropy_state, state2child, num_temperal_split)
-    v_model, v_state2child = vertical_split(model_json, max_entropy_state, state2child, num_vertical_split)
+    v_model, v_state2child = vertical_split(model_json, max_entropy_state, state2child, num_vertical_split, cnt)
 
     print("    Try temperal split")
     t_model.fit(xs, algorithm='baum-welch', emission_pseudocount=1, stop_threshold=20,

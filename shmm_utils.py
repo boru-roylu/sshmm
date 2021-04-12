@@ -131,7 +131,9 @@ def temperal_split(model_json, split_state, state2child, num_temperal_split):
     return model, state2child
 
 
-def vertical_split(model_json, split_state, state2child, num_vertical_split):
+def vertical_split(model_json, split_state, state2child, num_vertical_split, count):
+    global_emission_probs = normalize(count)
+
     named_edges = get_named_edges(model_json)
     state2emissionprob, _ = get_states(model_json)
 
@@ -149,7 +151,8 @@ def vertical_split(model_json, split_state, state2child, num_vertical_split):
         if name == split_state:
             max_prob_cluster = max(ep.items(), key=lambda x: x[1])[0]
             ep[max_prob_cluster] = 0
-            n2s[new] = State(DiscreteDistribution(ep), name=new)
+            #n2s[new] = State(DiscreteDistribution(ep), name=new)
+            n2s[new] = State(DiscreteDistribution(global_emission_probs), name=new)
     n2s[model.start.name] = model.start
     n2s[model.end.name] = model.end
 

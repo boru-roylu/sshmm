@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 
 n_clusters = 50
@@ -5,6 +6,9 @@ n_clusters = 50
 #dev = f"./exp/kmeans_agent_{n_clusters}_clusters/dev.csv"
 train = f"./raw_data/150/kmedoids_agent_train_clusters.csv.gz"
 dev = f"./raw_data/150/kmedoids_agent_dev_clusters.csv.gz"
+
+train = sys.argv[1]
+dev = sys.argv[2]
 
 
 
