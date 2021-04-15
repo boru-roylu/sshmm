@@ -16,12 +16,14 @@ num_init_states = 3
 num_split = 12
 max_iterations = 10
 
-exp_dir = f"./exp/shmm_tv_global_ep_for_v/{num_clusters}"
+#exp_dir = f"./exp/shmm_tv_global_ep_for_v/{num_clusters}"
+exp_dir = f"./exp/shmm_tv_merge_num_manual_label_v1/{num_clusters}"
 os.makedirs(exp_dir, exist_ok=True)
-image_dir = f"./images/shmm_tv_global_ep_for_v/{num_clusters}"
+#image_dir = f"./images/shmm_tv_global_ep_for_v/{num_clusters}"
+image_dir = f"./images/shmm_tv_merge_num_manual_manual_label_v1/{num_clusters}"
 os.makedirs(image_dir, exist_ok=True)
 
-train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", num_clusters)
+train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150_merge_num", num_clusters)
 print('vocab size = ', len(vocab))
 
 xs = []

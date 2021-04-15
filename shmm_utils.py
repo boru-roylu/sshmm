@@ -180,7 +180,9 @@ def vertical_split(model_json, split_state, state2child, num_vertical_split, cou
 
 
 def plot_shmm(model, image_path):
-    df = pd.read_csv('./raw_data/150/medoid_centers.csv')
+    #df = pd.read_csv('./raw_data/150/medoid_centers.csv')
+    df = pd.read_csv('./raw_data/kmedoids_150_merge_num/medoid_centers_manual_label_v1.csv', sep='|')
+    df.phrase = [f'<{s}> {l}'for s, l in zip(df.stage, df.label)]
     df['cluster'] = df['cluster'].astype(str)
     cluster2utt = dict(zip(df.cluster, df.phrase))
 
@@ -219,10 +221,13 @@ def plot_shmm(model, image_path):
     idx2names = {i: s['name'] for i, s in enumerate(model_json['states'])}
     edges = []
     for e in model_json['edges']:
-        i_state = idx2names[e[0]]
-        j_state = idx2names[e[1]]
+        i = idx2names[e[0]]
+        j = idx2names[e[1]]
         prob = e[2]
-        c0.edge(i_state, j_state, label=f"{prob:.3f}", len='3.00')
+        if j == model.end.name:
+            c0.edge(i, j, label=f'{prob:.3f}', len='3.00', style='dashed')
+        else:
+            c0.edge(i, j, label=f"{prob:.3f}", len='3.00')
 
     #the graph is basicaly split in 4 clusters
     g.subgraph(c0)
