@@ -39,22 +39,18 @@ class StateSplitingHMM:
         self.num_temperal_split = 0
         self.num_vertical_split = 0
 
-        print(f'num_states = {num_states}')
-        print(f'num_temperal_split = {num_temperal_split}')
-        print(f'num_vertical_split = {num_vertical_split}')
-
     def save(self, model_dir):
-        with open(os.path.join(model_dir, f'sshmm_{num_states}.yaml')) as f:
+        with open(os.path.join(model_dir, f'sshmm_{self.num_states}.yaml'), 'w') as f:
             yaml.dump(self.model.to_yaml(), f)
 
     @staticmethod
-    def fit(model, xs):
+    def fit(model, xs, max_iterations):
         model.fit(
             xs,
             algorithm='baum-welch',
             emission_pseudocount=1,
             stop_threshold=20,
-            max_iterations=self.args.max_iterations,
+            max_iterations=max_iterations,
             verbose=True,
             n_jobs=os.cpu_count()-2,
         )
@@ -63,7 +59,7 @@ class StateSplitingHMM:
     def fit_split(self, xs, split_state, split_callback):
 
         model, new_state_name = split_callback(split_state)
-        model = StateSplitingHMM.fit(model, xs)
+        model = StateSplitingHMM.fit(model, xs, self.args.max_iterations)
         logprob = sum(model.log_probability(x) for x in xs)
 
         return model, logprob, new_state_name
@@ -139,6 +135,7 @@ class StateSplitingHMM:
         named_edges = get_named_edges(model_json)
         state2emissionprob, _ = get_states(model_json)
     
+        child = self.state2child[split_state]
         new = f"T{self.num_temperal_split+1:02} <- {split_state}"
     
         model = HiddenMarkovModel(name="Conversation HMM")
@@ -175,7 +172,7 @@ class StateSplitingHMM:
         return model, new
 
 
-    def vertical_split(split_state):
+    def vertical_split(self, split_state):
     
         model_json = json.loads(self.model.to_json())
         named_edges = get_named_edges(model_json)
@@ -244,7 +241,7 @@ class StateSplitingHMM:
             topk = sorted(ep.items(), key=lambda x: x[1], reverse=True)[:self.args.plot_topk_clusters]
             for cluster, prob in topk:
                 string += f'cluster = {cluster}; prob = {prob:.4f}\l'
-                string += "\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40))
+                string += "\l".join(textwrap.wrap(f"{self.cluster2utt[cluster]}", width=40))
                 string += "\l\l"
             state2topk_clusters[name] = string
     
