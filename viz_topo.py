@@ -7,7 +7,7 @@ import pdb
 class GraphTopo:
     def __init__(self):
         self.top_e = 5
-        self.n_states = 15
+        self.n_states = 10
         self.load_model()
         self.graph_transmat()
 

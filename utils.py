@@ -138,7 +138,7 @@ def graph_topo(transmat, emissionprob, state_info, vocab, top_e):
                          f"{j:02}",
                          label = f"{prob:.3f}",
                          color='purple', penwidth="1.0")
-    dot.render('./sshmm', format='pdf', view=False)
+    dot.render('/g/ssli/data/tmcalls/sshmm/transmat.gv', format='pdf', view=False)
 
 
 
@@ -170,7 +170,7 @@ def graph_topo(transmat, emissionprob, state_info, vocab, top_e):
     #dot.render('./sshmm', format='pdf', view=False)
 
 def get_cluster_representative(cluster_ids):
-    df = pd.read_csv('./raw_data/150/medoid_centers.csv')
+    df = pd.read_csv('/g/ssli/data/tmcalls/clustering_data/clustering/medoid_centers.csv')
     df = df[df.cluster.isin(cluster_ids)].reindex(cluster_ids)
     rep_utts = df.phrase.tolist()
     return rep_utts
@@ -188,7 +188,7 @@ def plotHMM(model):
         match_emissionprobs (dict): dictionary of the form {state_id:{cluster:float,clusterB: float}}
     """
 
-    df = pd.read_csv('./raw_data/150/medoid_centers.csv')
+    df = pd.read_csv('/g/ssli/data/tmcalls/clustering_data/clustering/medoid_centers.csv')
     df['cluster'] = df['cluster'].astype(str)
     cluster2utt = dict(zip(df.cluster, df.phrase))
 

@@ -8,6 +8,8 @@ baseline/metadata
 pretrained_models
 finetuned_models
 yaml
+debug
+debug/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
