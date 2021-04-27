@@ -19,7 +19,7 @@ parser.add_argument(
     '--num_split',
     default=12,
     type=int,
-    help='num of topk clusters',
+    help='num of state-splitting',
 )
 parser.add_argument(
     '--max_iterations',
@@ -34,22 +34,51 @@ parser.add_argument(
     help='only plot topk clusters for each state',
 )
 parser.add_argument(
+    '--plot_insert_topk_clusters',
+    default=5,
+    type=int,
+    help='only plot topk clusters for each state',
+)
+parser.add_argument(
     '--exp_parent_dir',
     required=True,
     type=str,
     help='parent dir to save models and images',
 )
 parser.add_argument(
-    '--seq_data',
+    '--seq_data_parent_dir',
     required=True,
     type=str,
     help='sequence data created by create_seq.py',
 )
 parser.add_argument(
-    '--cluster_representative_path',
+    '--center_path',
     required=True,
     type=str,
     help='path of cluster representatives',
+)
+parser.add_argument(
+    '--topk_outgoing',
+    default=5,
+    type=int,
+    help='prune outgoing paths and only keep topk outgoing paths',
+)
+parser.add_argument(
+    '--skip_insert_clusters',
+    nargs='+',
+    default=[],
+    type=int,
+    help='',
+)
+parser.add_argument(
+    '--insert',
+    action='store_true',
+    help='using insertion state',
+)
+parser.add_argument(
+    '--manual_center',
+    action='store_true',
+    help='manual label',
 )
 args = parser.parse_args()
 
@@ -60,7 +89,7 @@ model_dir = os.path.join(exp_dir, 'models')
 os.makedirs(image_dir, exist_ok=True)
 os.makedirs(model_dir, exist_ok=True)
 
-train_dataset, dev_dataset, vocab, cnt = get_datasets(args.seq_data, args.num_clusters)
+train_dataset, dev_dataset, vocab, cnt = get_datasets(args.seq_data_parent_dir, args.num_clusters)
 print('Number of top k clusters (vocab size) = ', len(vocab))
 
 """
@@ -89,7 +118,7 @@ sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'))
 for iteration in range(args.num_split):
     print(f'*'*20, f'iteration {iteration+1}', '*'*20)
     model_json = json.loads(sshmm.model.to_json())
-    state2emissionprob, _ = get_states(model_json)
+    state2emissionprob, _, _ = get_states(model_json)
     max_entropy_state = max(state2emissionprob.items(), key=lambda x: entropy(list(x[1].values())))[0]
 
     print("    Try temperal split")
