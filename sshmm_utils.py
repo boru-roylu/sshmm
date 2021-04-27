@@ -1,4 +1,5 @@
 import os
+import json
 import yaml
 import textwrap
 import numpy as np
@@ -40,8 +41,14 @@ class StateSplitingHMM:
         self.num_vertical_split = 0
 
     def save(self, model_dir):
-        with open(os.path.join(model_dir, f'sshmm_{self.num_states}.yaml'), 'w') as f:
-            yaml.dump(self.model.to_yaml(), f)
+        with open(os.path.join(model_dir, f'sshmm_{self.num_states:03}.json'), 'w') as f:
+            json.dump(self.model.to_json(), f)
+
+    @staticmethod
+    def load(model_path):
+        with open(model_path, 'r') as f:
+            model = HiddenMarkovModel.from_yaml(yaml.load(f))
+        return model
 
     @staticmethod
     def fit(model, xs, max_iterations):

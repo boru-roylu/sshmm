@@ -10,12 +10,6 @@ from sshmm_utils import StateSplitingHMM
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--exp_parent_dir',
-    default='./exp/shmm_tv_merge_num_manual_label_v1',
-    type=str,
-    help='parent dir to save models and images',
-)
-parser.add_argument(
     '--num_clusters',
     default=50,
     type=int,
@@ -34,6 +28,18 @@ parser.add_argument(
     help='num of iterations for each EM',
 )
 parser.add_argument(
+    '--plot_topk_clusters',
+    default=5,
+    type=int,
+    help='only plot topk clusters for each state',
+)
+parser.add_argument(
+    '--exp_parent_dir',
+    required=True,
+    type=str,
+    help='parent dir to save models and images',
+)
+parser.add_argument(
     '--seq_data',
     required=True,
     type=str,
@@ -41,15 +47,9 @@ parser.add_argument(
 )
 parser.add_argument(
     '--cluster_representative_path',
-    default='./raw_data/kmedoids_150_merge_num/medoid_centers_manual_label_v1.csv',
+    required=True,
     type=str,
     help='path of cluster representatives',
-)
-parser.add_argument(
-    '--plot_topk_clusters',
-    default=5,
-    type=int,
-    help='only plot topk clusters for each state',
 )
 args = parser.parse_args()
 
