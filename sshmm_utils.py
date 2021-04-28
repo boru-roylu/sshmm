@@ -132,32 +132,40 @@ class StateSplitingHMM:
         # Create transitions from match states
         edges.append((model.start, states[0], 1.0))
     
-        self_loop_prob = 0.8
-        if self.args.insert:
-            insert_prob = 0.05
-            self_loop_prob -= insert_prob
+        self.args.self_loop_prob = 0.8
         for i in range(num_init_states):
+            child_name = state2child[states[i].name]
     
             # self loop
-            edges.append((states[i], states[i], self_loop_prob))
-
+            edges.append((states[i], states[i], self.args.self_loop_prob))
             if self.args.insert:
-                edges.append((insert_states[i], insert_states[i], self_loop_prob))
-                edges.append((states[i], insert_states[i], insert_prob))
-                edges.append((insert_states[i], states[i], insert_prob))
+                edges.append((insert_states[i], insert_states[i], self.args.insert_self_loop_epsilon))
     
             num_neighbors = min(2, num_init_states-i)
             # +1 is for the end state
-            neighbor_prob = (1-self_loop_prob) / (num_neighbors+1)
+            # +2 is for the end state and insertion state
+            neighbor_prob = (1-self.args.self_loop_prob) / {True: num_neighbors+2, False: num_neighbors+1}[self.args.insert]
+            if self.args.insert:
+                edges.append((states[i], insert_states[i], neighbor_prob))
             for j in range(i+1, i+num_neighbors):
                 edges.append((states[i], states[j], neighbor_prob))
+
                 if self.args.insert:
-                    edges.append((insert_states[i], states[j], neighbor_prob))
-    
+                    # we only allow a insertion state can go back to original
+                    # state or its child
+                    if states[j].name == child_name:
+                        insert_neighbor_prob = (1-self.args.insert_self_loop_epsilon) / 2
+                        edges.append((insert_states[i], states[i], insert_neighbor_prob))
+                        edges.append((insert_states[i], states[j], insert_neighbor_prob))
+
+            if self.args.insert and child_name == model.end.name:
+                insert_neighbor_prob = 1-self.args.insert_self_loop_epsilon
+                edges.append((insert_states[i], states[i], insert_neighbor_prob))
+
             # each state can go to the end state
             edges.append((states[i], model.end, neighbor_prob))
-            if self.args.insert:
-                edges.append((insert_states[i], model.end, neighbor_prob))
+            #if self.args.insert:
+            #    edges.append((insert_states[i], model.end, neighbor_prob))
     
         states.extend([model.start, model.end])
         if self.args.insert:

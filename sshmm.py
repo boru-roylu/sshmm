@@ -61,24 +61,36 @@ parser.add_argument(
     '--topk_outgoing',
     default=5,
     type=int,
-    help='prune outgoing paths and only keep topk outgoing paths',
+    help='prune outgoing paths and only keep top k outgoing paths',
 )
 parser.add_argument(
     '--skip_insert_clusters',
     nargs='+',
     default=[],
     type=int,
-    help='',
+    help='skip clusters of global emission probs of insertion states',
 )
 parser.add_argument(
     '--insert',
     action='store_true',
-    help='using insertion state',
+    help='use insertion states',
 )
 parser.add_argument(
     '--manual_center',
     action='store_true',
-    help='manual label',
+    help='use manually labeled centers',
+)
+parser.add_argument(
+    '--self_loop_prob',
+    default=0.8,
+    type=int,
+    help='self loop prob of normal states',
+)
+parser.add_argument(
+    '--insert_self_loop_epsilon',
+    default=0.03,
+    type=int,
+    help='self loop prob of insertion states',
 )
 args = parser.parse_args()
 
