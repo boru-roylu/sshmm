@@ -22,10 +22,10 @@ def get_datasets(parent_dir, topk):
         data[split]["ids"] = ids
 
     cnt = Counter([s for seq in data["train"]["seqs"] for s in seq])
-    cnt2 = Counter([s for seq in data["dev"]["seqs"] for s in seq])
-    cnt = cnt + cnt2
-    cnt = dict(cnt.most_common(topk))
-    vocab = {k: i for i, k in enumerate(cnt.keys())}
+    #cnt2 = Counter([s for seq in data["dev"]["seqs"] for s in seq])
+    #cnt = cnt + cnt2
+    #cnt = dict(cnt.most_common(topk))
+    vocab = {k: i for i, (k, v) in enumerate(sorted(cnt.items(), key=lambda x: x[1], reverse=True)[:topk])}
 
     for split, d in data.items():
         new_seqs = []

@@ -1,30 +1,49 @@
+import os
+import sys
+import argparse
 import pandas as pd
 
-n_clusters = 50
-#train = f"./exp/kmeans_agent_{n_clusters}_clusters/train.csv"
-#dev = f"./exp/kmeans_agent_{n_clusters}_clusters/dev.csv"
-train = f"./raw_data/150/kmedoids_agent_train_clusters.csv.gz"
-dev = f"./raw_data/150/kmedoids_agent_dev_clusters.csv.gz"
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--train_path",
+    required=True,
+    type=str,
+    help="",
+)
+parser.add_argument(
+    "--dev_path",
+    required=True,
+    type=str,
+    help="",
+)
+parser.add_argument(
+    "--output_parent_dir",
+    required=True,
+    type=str,
+    help="",
+)
+parser.add_argument(
+    "--sep",
+    default=",",
+    type=str,
+    help="",
+)
+args = parser.parse_args()
 
+os.makedirs(args.output_parent_dir, exist_ok=True)
 
-
-for split, csv in [("train", train), ("dev", dev)]: 
-    df = pd.read_csv(csv, compression="gzip")
+for split, csv in [("train", args.train_path), ("dev", args.dev_path)]: 
+    df = pd.read_csv(csv, sep=args.sep, compression="gzip")
     df = df[df.party == "agent"]
     data = []
-    no_good_start = 0
     for _, utts in df.groupby(df.sourcemediaid):
-        #utts = utts.sort_values(by="idx")
         sid = utts["sourcemediaid"].tolist()[0]
         seq = utts["cluster"].astype(str).tolist()
-
-        #if seq[0] != "45":
-        #    no_good_start += 1
-        #    continue
 
         data.append((sid, ",".join(seq)))
 
     df = pd.DataFrame(data, columns=["sourcemediaid", "cluster_sequence"])
-    df.to_csv(f"{split}.csv", sep="|", index=False)
-    print(len(df))
-    print(no_good_start)
+
+    output_path = os.path.join(args.output_parent_dir, f"{split}.csv")
+    df.to_csv(output_path, sep="|", index=False)
+    print(f'[{split}] # of example {len(df)}')
