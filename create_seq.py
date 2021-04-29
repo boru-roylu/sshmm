@@ -6,6 +6,8 @@ n_clusters = 50
 #dev = f"./exp/kmeans_agent_{n_clusters}_clusters/dev.csv"
 train = f"./raw_data/150/kmedoids_agent_train_clusters.csv.gz"
 dev = f"./raw_data/150/kmedoids_agent_dev_clusters.csv.gz"
+#train = f"./raw_data/kmedoids_agent_150_merge_num/kmedoids_150_agent_train_merge-num_clusters.csv.gz"
+#dev = f"./raw_data/kmedoids_agent_150_merge_num/kmedoids_150_agent_dev_merge-num_clusters.csv.gz"
 
 train = sys.argv[1]
 dev = sys.argv[2]
@@ -29,6 +31,6 @@ for split, csv in [("train", train), ("dev", dev)]:
         data.append((sid, ",".join(seq)))
 
     df = pd.DataFrame(data, columns=["sourcemediaid", "cluster_sequence"])
-    df.to_csv(f"{split}.csv", sep="|", index=False)
+    df.to_csv(f"/g/ssli/data/tmcalls/sshmm/{split}.csv", sep="|", index=False)
     print(len(df))
     print(no_good_start)

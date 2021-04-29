@@ -9,6 +9,7 @@ from graphviz import Digraph
 from pomegranate import *
 
 from utils import get_states, get_named_edges 
+import pdb
 
 def normalize(dic):
     _sum = sum(dic.values())
@@ -28,9 +29,16 @@ def create_model(states, edges, model):
 class StateSplitingHMM:
     def __init__(self, args, count):
         df = pd.read_csv(args.cluster_representative_path, sep='|')
-        df.phrase = [f'<{s}> {l}'for s, l in zip(df.stage, df.label)]
+        #pdb.set_trace()
+        #df.phrase = [f'<{s}> {l}'for s, l in zip(df.stage, df.label)]
         df['cluster'] = df['cluster'].astype(str)
         self.cluster2utt = dict(zip(df.cluster, df.phrase))
+        
+        self.intents = pd.read_csv('/g/ssli/data/tmcalls/heddayam/gridspace-stanford-harper-valley/preprocessed/intents.csv.gz',
+                                    compression='gzip', sep='|') 
+        #df.l3 = df.l3.apply(lambda x: eval(x))
+        #self.cluster2l3 = dict(zip(df.cluster, df.l3))
+        #self.cluster2fraction = dict(zip(df.cluster, df.cn_fraction))
 
         self.args = args
         self.count = count
@@ -239,10 +247,27 @@ class StateSplitingHMM:
         for name, ep in state2emissionprob.items():
             string = name + "\n"
             topk = sorted(ep.items(), key=lambda x: x[1], reverse=True)[:self.args.plot_topk_clusters]
+            topk_l3_counter = Counter()
+            topk_cn_fraction = []
             for cluster, prob in topk:
+                pdb.set_trace()
+                #topk_l3_counter += self.cluster2l3[cluster]
+                #topk_cn_fraction.append(self.cluster2fraction[cluster])
                 string += f'cluster = {cluster}; prob = {prob:.4f}\l'
                 string += "\l".join(textwrap.wrap(f"{self.cluster2utt[cluster]}", width=40))
                 string += "\l\l"
+            
+            #topk_cb_fraction_avg = 1 - np.mean(np.asarray(topk_cn_fraction))
+            #topk_cb_fraction_avg = "{:.2f}".format(topk_cb_fraction_avg)
+            #string += f'\lcallback ratio = {topk_cb_fraction_avg}'
+            
+            #total = sum(topk_l3_counter.values())
+            #most_common_l3 = topk_l3_counter.most_common(5)
+            
+            #for query in most_common_l3:
+            #    string += f'\l{query[0]} =' + "{:.4f}".format(query[1]/total)
+            #string += '\l'
+        
             state2topk_clusters[name] = string
     
     

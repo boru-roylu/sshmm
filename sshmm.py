@@ -7,7 +7,7 @@ from pomegranate import *
 from data2 import get_datasets
 from utils import get_states, entropy
 from sshmm_utils import StateSplitingHMM
-
+import pdb
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '--exp_parent_dir',
@@ -41,7 +41,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--cluster_representative_path',
-    default='./raw_data/kmedoids_150_merge_num/medoid_centers_manual_label_v1.csv',
+    default='./raw_data/kmedoids_agent_150_merge_num/medoid_centers_manual_label_v1.csv',
     type=str,
     help='path of cluster representatives',
 )
