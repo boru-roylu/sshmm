@@ -39,6 +39,8 @@ for split in ['train', 'dev', 'test']:
 
     df = pd.DataFrame(data, columns=["example_id", "cluster_sequence"])
 
-    output_path = os.path.join(args.data_parent_dir, f"{args.party}_{split}_cluster_sequence.csv")
+    output_dir = f'{args.data_parent_dir}/cluster_sequence'
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f'{args.party}_{split}.csv')
     df.to_csv(output_path, sep="|", index=False)
     print(f'[{split}] # of example {len(df)}')

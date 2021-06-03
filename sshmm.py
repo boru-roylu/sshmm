@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 from pomegranate import *
 
-from data2 import get_datasets
+from data2 import read_data, filter_cluster_seq_lens, filter_low_freq_clusters
 from utils import get_states, entropy
 from sshmm_utils import StateSplitingHMM
 
@@ -92,38 +92,95 @@ parser.add_argument(
     type=int,
     help='self loop prob of insertion states',
 )
+parser.add_argument(
+    '--max_seq_len_percent',
+    default=0.9,
+    type=int,
+    help='max seq len'
+)
+parser.add_argument(
+    '--min_seq_len_percent',
+    default=0.1,
+    type=int,
+    help='min seq len'
+)
+parser.add_argument(
+    '--party',
+    default='agent',
+    type=str,
+    help='agent or customer',
+)
 args = parser.parse_args()
 
 num_init_states = 3
-exp_dir = os.path.join(args.exp_parent_dir, f'{args.num_clusters:03}')
+exp_dir = os.path.join(args.exp_parent_dir, f'{args.party}_{args.num_clusters:03}')
 image_dir = os.path.join(exp_dir, 'images')
 model_dir = os.path.join(exp_dir, 'models')
 os.makedirs(image_dir, exist_ok=True)
 os.makedirs(model_dir, exist_ok=True)
 
-train_dataset, dev_dataset, vocab, cnt = get_datasets(args.seq_data_parent_dir, args.num_clusters)
+data, vocab, cnt = read_data(args.seq_data_parent_dir, args.num_clusters)
 print('Number of top k clusters (vocab size) = ', len(vocab))
 
 """
     prepare data
 """
-xs = []
-ids = []
-x_lens = []
-for x, _id in train_dataset:
-    xs.append(x)
-    ids.append(_id)
-    x_lens.append(len(x))
 
-init_threshold = int(np.mean(x_lens))
+print('# train examples = ', len(data['train']['xs']))
+print('(before filter low-freq clusters)')
+ori_avg_len = np.mean(data['train']['x_lens'])
+print(f'avg len = {ori_avg_len}')
+
+cut_lens = filter_low_freq_clusters(data, vocab)
+
+avg_len = np.mean(data['train']['x_lens'])
+avg_cut_len = np.mean(cut_lens['train'])
+print('(after filter low-freq clusters)')
+print(f'avg len = {avg_len}')
+print(f'avg cut len = {avg_cut_len}')
+print(f'cut percent = {avg_cut_len / ori_avg_len}')
+print('(after filter low freq) # train examples = ', len(data['train']['xs']))
+
+min_seq_len = np.quantile(data['train']['x_lens'], args.min_seq_len_percent)
+max_seq_len = np.quantile(data['train']['x_lens'], args.max_seq_len_percent)
+
+print(f'max_seq_len = {max_seq_len}')
+print(f'min_seq_len = {min_seq_len}')
+
+filter_cluster_seq_lens(data, min_seq_len, max_seq_len)
+print('(after filter seq lens) # train examples = ', len(data['train']['xs']))
+
+
+"""
+    save basic info
+"""
+path = os.path.join(exp_dir, 'vocab.json')
+with open(path, 'w') as f:
+    json.dump(vocab, f, indent=4)
+
+path = os.path.join(exp_dir, 'cnt.json')
+with open(path, 'w') as f:
+    json.dump(cnt, f, indent=4)
+
+path = os.path.join(exp_dir, 'info.json')
+info = {'min_seq_len': min_seq_len, 'max_seq_len': max_seq_len}
+with open(path, 'w') as f:
+    json.dump(info, f, indent=4)
+
+path = os.path.join(exp_dir, 'args.json')
+with open(path, 'w') as f:
+    json.dump(vars(args), f, indent=4)
+
+
+init_threshold = int(np.mean(data['train']['x_lens']))
 sshmm = StateSplitingHMM(args, cnt)
-sshmm.init_model(xs, num_init_states, init_threshold=init_threshold)
+sshmm.init_model(data['train']['xs'], num_init_states, init_threshold=init_threshold)
 sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_init'))
 
 
 print('Start training')
 print(f'********** iteration 0 **********')
-sshmm.model = StateSplitingHMM.fit(sshmm.model, xs, args.max_iterations)
+sshmm.model = StateSplitingHMM.fit(sshmm.model, data['train']['xs'], args.max_iterations)
 sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'))
 
 for iteration in range(args.num_split):
@@ -133,11 +190,11 @@ for iteration in range(args.num_split):
     max_entropy_state = max(state2emissionprob.items(), key=lambda x: entropy(list(x[1].values())))[0]
 
     print("    Try temperal split")
-    t_model, t_logprob, t_new = sshmm.fit_split(xs, max_entropy_state, sshmm.temperal_split)
+    t_model, t_logprob, t_new = sshmm.fit_split(data['train']['xs'], max_entropy_state, sshmm.temperal_split)
     print()
 
     print("    Try vertical split")
-    v_model, v_logprob, v_new = sshmm.fit_split(xs, max_entropy_state, sshmm.vertical_split)
+    v_model, v_logprob, v_new = sshmm.fit_split(data['train']['xs'], max_entropy_state, sshmm.vertical_split)
     print()
 
     print(f"    LogProb: temperal = {t_logprob:.3f}; vertical = {v_logprob:.3f}")

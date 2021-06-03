@@ -1,10 +1,13 @@
 commands:
-    - conda activate hmm 
-    - python shmm.py $(num_clusters) $(topk_outgoing)
+    - python sshmm.py
+      --seq_data ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2
+      --exp ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2/sshmm
+      --center ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2/$(party)_cluster_centers.csv
+      --num_clusters $(num_clusters)
 
 params:
     - name: num_clusters
       values: [30, 50, 100, 150]
 
-    - name: topk_outgoing
-      values: [7, 10, 999]
+    - name: party
+      values: ['agent', 'customer']

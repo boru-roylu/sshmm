@@ -32,7 +32,7 @@ class StateSplitingHMM:
         if args.manual_center:
             df.phrase = [f'<{s}> {l}'for s, l in zip(df.stage, df.label)]
         else:
-            df.phrase = df['closest_0']#.apply(lambda x: x.replace('numnum', '###'))
+            df.phrase = df['closest_0']
         df['cluster'] = df['cluster'].astype(str)
         self.cluster2utt = dict(zip(df.cluster, df.phrase))
 
