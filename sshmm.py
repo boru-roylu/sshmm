@@ -109,12 +109,11 @@ print('Number of top k clusters (vocab size) = ', len(vocab))
 """
 xs = []
 ids = []
+x_lens = []
 for x, _id in train_dataset:
     xs.append(x)
     ids.append(_id)
-xs = xs
-ids = ids
-x_lens = [len(x) for x in xs]
+    x_lens.append(len(x))
 
 init_threshold = int(np.mean(x_lens))
 sshmm = StateSplitingHMM(args, cnt)

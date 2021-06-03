@@ -10,7 +10,7 @@ from graphviz import Digraph
 import math
 import textwrap
 
-from hmmlearn.utils import normalize
+#from hmmlearn.utils import normalize
 
 from collections import OrderedDict
 
@@ -101,15 +101,15 @@ def get_state_labels(state_idx2parent, ordered_idxs):
     return ret
 
 
-def topk_transmat(transmat, topk):
-    topk_idxs = np.argsort(transmat)[:, -topk:][:, 0]
-    for i, t in enumerate(topk_idxs):
-        min_value = transmat[i][t]
-        m = np.ma.array(transmat[i], mask=transmat[i]<min_value)
-        transmat[i] = m.filled(fill_value=0)
-        normalize(transmat[i])
-
-    return transmat
+#def topk_transmat(transmat, topk):
+#    topk_idxs = np.argsort(transmat)[:, -topk:][:, 0]
+#    for i, t in enumerate(topk_idxs):
+#        min_value = transmat[i][t]
+#        m = np.ma.array(transmat[i], mask=transmat[i]<min_value)
+#        transmat[i] = m.filled(fill_value=0)
+#        normalize(transmat[i])
+#
+#    return transmat
 
 def graph_topo(transmat, emissionprob, state_info, vocab, top_e):
     dot = Digraph(comment='State Topo')

@@ -11,12 +11,12 @@ def get_datasets(parent_dir, topk):
     vocab = {}
     data = {"train": {}, "dev": {}}
     for split in ["train", "dev"]:
-        path = os.path.join(parent_dir, f"{split}.csv")
+        path = os.path.join(parent_dir, f"agent_{split}_cluster_sequence.csv")
         df = pd.read_csv(path, sep="|")
 
         seqs = df["cluster_sequence"].apply(lambda x: x.split(",")).tolist()
         seqs = [[int(s) for s in seq] for seq in seqs]
-        ids = df["sourcemediaid"].tolist()
+        ids = df["example_id"].tolist()
 
         data[split]["seqs"] = seqs
         data[split]["ids"] = ids
@@ -55,4 +55,5 @@ class TextDataset:
     def __getitem__(self, idx):
         x = self.data["seqs"][idx]
         _ids = self.data["ids"][idx]
+
         return np.array(x), _ids

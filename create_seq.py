@@ -5,19 +5,7 @@ import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--train_path",
-    required=True,
-    type=str,
-    help="",
-)
-parser.add_argument(
-    "--dev_path",
-    required=True,
-    type=str,
-    help="",
-)
-parser.add_argument(
-    "--output_parent_dir",
+    "--data_parent_dir",
     required=True,
     type=str,
     help="",
@@ -28,22 +16,29 @@ parser.add_argument(
     type=str,
     help="",
 )
+parser.add_argument(
+    "--party",
+    default="agent",
+    type=str,
+    help="",
+)
 args = parser.parse_args()
 
-os.makedirs(args.output_parent_dir, exist_ok=True)
-
-for split, csv in [("train", args.train_path), ("dev", args.dev_path)]: 
-    df = pd.read_csv(csv, sep=args.sep, compression="gzip")
-    df = df[df.party == "agent"]
+for split in ['train', 'dev', 'test']:
+    df_path = f'{args.data_parent_dir}/{args.party}_{split}.csv'
+    df = pd.read_csv(df_path, sep=args.sep)
     data = []
-    for _, utts in df.groupby(df.sourcemediaid):
-        sid = utts["sourcemediaid"].tolist()[0]
+    groups = df.groupby(df.example_id)
+    for i, (_, utts) in enumerate(groups):
+        if i % 100 == 0:
+            print(f'progress: {i / len(groups) * 100:.1f}%', end='\r')
+        sid = utts["example_id"].tolist()[0]
         seq = utts["cluster"].astype(str).tolist()
 
         data.append((sid, ",".join(seq)))
 
-    df = pd.DataFrame(data, columns=["sourcemediaid", "cluster_sequence"])
+    df = pd.DataFrame(data, columns=["example_id", "cluster_sequence"])
 
-    output_path = os.path.join(args.output_parent_dir, f"{split}.csv")
+    output_path = os.path.join(args.data_parent_dir, f"{args.party}_{split}_cluster_sequence.csv")
     df.to_csv(output_path, sep="|", index=False)
     print(f'[{split}] # of example {len(df)}')
