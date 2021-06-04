@@ -11,13 +11,13 @@ def pop_list_by_idxs(lst, pop_idxs):
     return lst
 
 
-def read_data(parent_dir, topk, splits=['train']):
+def read_data(parent_dir, party, topk=None, splits=['train']):
     lines = []
 
     vocab = {}
     data = {s: {} for s in splits}
     for split, d in data.items():
-        path = os.path.join(parent_dir, f"agent_{split}_cluster_sequence.csv")
+        path = os.path.join(parent_dir, f"{party}_{split}.csv")
         df = pd.read_csv(path, sep="|")
 
         example_ids = df["example_id"].tolist()
@@ -31,12 +31,16 @@ def read_data(parent_dir, topk, splits=['train']):
         d["x_lens"] = x_lens
                                           
 
-    cnt = Counter([xx for x in data["train"]["xs"] for xx in x])
-    vocab = {
-        k: i for i, (k, v) in enumerate(
-            sorted(cnt.items(), key=lambda x: x[1], reverse=True)[:topk]
-        )
-    }
+    if 'train' in data:
+        cnt = Counter([xx for x in data["train"]["xs"] for xx in x])
+        vocab = {
+            k: i for i, (k, v) in enumerate(
+                sorted(cnt.items(), key=lambda x: x[1], reverse=True)[:topk]
+            )
+        }
+    else:
+        cnt = None
+        vocab = None
 
     return data, vocab, cnt
 

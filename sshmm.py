@@ -10,6 +10,12 @@ from sshmm_utils import StateSplitingHMM
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
+    '--n_jobs',
+    default=1,
+    type=int,
+    help='num of cpu cores',
+)
+parser.add_argument(
     '--num_clusters',
     default=50,
     type=int,
@@ -59,7 +65,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--topk_outgoing',
-    default=5,
+    default=None,
     type=int,
     help='prune outgoing paths and only keep top k outgoing paths',
 )
@@ -83,30 +89,30 @@ parser.add_argument(
 parser.add_argument(
     '--self_loop_prob',
     default=0.8,
-    type=int,
+    type=float,
     help='self loop prob of normal states',
 )
 parser.add_argument(
     '--insert_self_loop_epsilon',
     default=0.03,
-    type=int,
+    type=float,
     help='self loop prob of insertion states',
 )
 parser.add_argument(
     '--max_seq_len_percent',
     default=0.9,
-    type=int,
+    type=float,
     help='max seq len'
 )
 parser.add_argument(
     '--min_seq_len_percent',
     default=0.1,
-    type=int,
+    type=float,
     help='min seq len'
 )
 parser.add_argument(
     '--party',
-    default='agent',
+    required=True,
     type=str,
     help='agent or customer',
 )
@@ -119,7 +125,8 @@ model_dir = os.path.join(exp_dir, 'models')
 os.makedirs(image_dir, exist_ok=True)
 os.makedirs(model_dir, exist_ok=True)
 
-data, vocab, cnt = read_data(args.seq_data_parent_dir, args.num_clusters)
+data, vocab, cnt = read_data(args.seq_data_parent_dir, args.party, args.num_clusters)
+print(type(list(vocab.keys())[0]))
 print('Number of top k clusters (vocab size) = ', len(vocab))
 
 """
@@ -180,11 +187,15 @@ sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_init'))
 
 print('Start training')
 print(f'********** iteration 0 **********')
-sshmm.model = StateSplitingHMM.fit(sshmm.model, data['train']['xs'], args.max_iterations)
+sshmm.model = StateSplitingHMM.fit(
+    sshmm.model, data['train']['xs'],
+    args.max_iterations,
+    args.n_jobs,
+)
 sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'))
 
 for iteration in range(args.num_split):
-    print(f'*'*20, f'iteration {iteration+1}', '*'*20)
+    print(f'*'*20, f'iteration {iteration+1}', '*'*20, flush=True)
     model_json = json.loads(sshmm.model.to_json())
     state2emissionprob, _, _ = get_states(model_json)
     max_entropy_state = max(state2emissionprob.items(), key=lambda x: entropy(list(x[1].values())))[0]
@@ -213,7 +224,7 @@ for iteration in range(args.num_split):
 
     print(f'    num_states = {sshmm.num_states}')
     print(f'    num_temperal_split = {sshmm.num_temperal_split}')
-    print(f'    num_vertical_split = {sshmm.num_vertical_split}')
+    print(f'    num_vertical_split = {sshmm.num_vertical_split}', flush=True)
 
     sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'))
     sshmm.save(model_dir)

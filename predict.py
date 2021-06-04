@@ -1,19 +1,16 @@
+import os
+import json
 import pickle
 import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from data import get_datasets
+from data2 import read_data, filter_low_freq_clusters, filter_cluster_seq_lens
+from sshmm_utils import StateSplitingHMM
 
 pd.options.display.max_colwidth = 150
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--topk_cluster",
-    required=True,
-    type=int,
-    help="topk clusters",
-)
 parser.add_argument(
     "--model_path",
     required=True,
@@ -21,72 +18,82 @@ parser.add_argument(
     help="trained model path",
 )
 parser.add_argument(
-    "--centroid_path",
+    "--exp_dir",
     required=True,
     type=str,
-    help="csv file: cluster id to centroid utterance",
+    help="experiment directory that contains json files",
 )
 parser.add_argument(
-    "--raw_path",
-    required=True,
-    type=str,
-    help="csv file: raw clustering file",
-)
-parser.add_argument(
-    "--output_path",
+    "--output_dir",
     required=True,
     type=str,
     help="output file path",
 )
-
+parser.add_argument(
+    '--seq_data_parent_dir',
+    required=True,
+    type=str,
+    help='sequence data created by create_seq.py',
+)
+parser.add_argument(
+    '--party',
+    required=True,
+    type=str,
+    help='agent or customer',
+)
 args = parser.parse_args()
 
-train_dataset, dev_dataset, vocab, cnt = get_datasets("./data/kmedoids_agent_150", args.topk_cluster)
-topk_cluster_ids = list(vocab.keys())
+os.makedirs(args.output_dir, exist_ok=True)
+
+splits = ['dev', 'test']
+
+path = os.path.join(args.exp_dir, 'vocab.json')
+with open(path, 'r') as f:
+    vocab = json.load(f)
+    vocab = dict(map(lambda x: (int(x[0]), x[1]), vocab.items()))
+
+path = os.path.join(args.exp_dir, 'info.json')
+with open(path, 'r') as f:
+    info = json.load(f)
+    min_seq_len = info['min_seq_len']
+    max_seq_len = info['max_seq_len']
+
+data, _, _ = read_data(args.seq_data_parent_dir, args.party, splits=splits)
+
+ori_avg_len = {split: np.mean(data[split]['x_lens']) for split in splits}
+cut_lens = filter_low_freq_clusters(data, vocab)
+for split in splits:
+    print(f'*************** {split} **************')
+    avg_len = np.mean(data[split]['x_lens'])
+    avg_cut_len = np.mean(cut_lens[split])
+    print(f'    before filter low-freq clusters)')
+    print(f'    avg len = {ori_avg_len[split]}')
+    print(f'    after filter low-freq clusters')
+    print(f'    avg len = {avg_len}')
+    print(f'    avg cut len = {avg_cut_len}')
+    print(f'    cut percent = {avg_cut_len / ori_avg_len[split]}')
+
+filter_cluster_seq_lens(data, min_seq_len, max_seq_len)
+for split in splits:
+    print(f'    after filter seq lens # {split} examples = ', len(data[split]['xs']))
+
+topk_clusters = list(vocab.keys())
 vocab = {v: k for k, v in vocab.items()}
 print('vocab size = ', len(vocab))
 
-with open(args.model_path, "rb") as f:
-    model = pickle.load(f)
+model = StateSplitingHMM.load(args.model_path)
+assert set(model.states[0].distribution.parameters[0].keys()) == vocab.keys()
 
-df = pd.read_csv(args.centroid_path)
-raw_df = pd.read_csv(args.raw_path, compression="gzip")
+print(f'# states = {len(model.states) - 2}')
 
-xs = []
-ids = []
-for x, _id in dev_dataset:
-    xs.append(x)
-    ids.append(_id)
-x_lens = [len(x) for x in xs]
+for split, d in data.items():
+    print(f'************** predict {split} ***************')
+    rows = []
+    for example_id, x in zip(d['example_ids'], d['xs']):
+        state_seq = model.predict(x)
+        state_seq = ','.join(map(str, state_seq))
+        rows.append((example_id, state_seq))
 
-e = model.emissionprob_
-n_states, n_clusters = e.shape
-assert n_clusters == args.topk_cluster
-
-dfs = []
-for _id, x, x_len in tqdm(zip(ids, xs, x_lens), total=len(xs)):
-    states = model.predict(x.reshape(-1, 1), np.array([x_len]))
-    if len(set(states)) > 1:
-        cluster_seq = []
-        for s in states:
-            #cluster_seq.append(np.random.choice(np.arange(n_clusters), p=e[s]))
-            cluster_seq.append(np.argmax(e[s]))
-
-        utts = []
-        chat = raw_df[raw_df["sourcemediaid"] == _id]
-        chat = chat[chat["cluster"].isin(topk_cluster_ids)]
-        assert len(chat) == len(states)
-
-        ori_utts = chat["phrase"].tolist()
-        ori_clusters = chat["cluster"].tolist()
-
-        for s, c, outt, oc in zip(states, cluster_seq, ori_utts, ori_clusters):
-            c = vocab[c]
-            utt = df[df["cluster"] == c]["phrase"].tolist()[0]
-            utts.append((_id, oc, c, s, outt, utt))
-        dfs.append(pd.DataFrame(utts, columns=[
-            "sourcemediaid", "original_cluster", "state_cluster",
-            "state", "original_utterance", "state_utterance"]))
-
-df = pd.concat(dfs)
-df.to_csv(args.output_path, sep="|", index=False)
+    df = pd.DataFrame(rows, columns=['example_id', 'state_sequence'])
+    path = os.path.join(args.output_dir, f'{args.party}_{split}.csv') 
+    df.to_csv(path, sep="|", index=False)

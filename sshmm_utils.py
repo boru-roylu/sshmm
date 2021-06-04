@@ -50,11 +50,11 @@ class StateSplitingHMM:
     @staticmethod
     def load(model_path):
         with open(model_path, 'r') as f:
-            model = HiddenMarkovModel.from_yaml(yaml.load(f))
+            model = HiddenMarkovModel.from_json(json.load(f))
         return model
 
     @staticmethod
-    def fit(model, xs, max_iterations):
+    def fit(model, xs, max_iterations, n_jobs):
         model.fit(
             xs,
             algorithm='baum-welch',
@@ -62,14 +62,19 @@ class StateSplitingHMM:
             stop_threshold=20,
             max_iterations=max_iterations,
             verbose=True,
-            n_jobs=os.cpu_count()-2,
+            n_jobs=n_jobs,
         )
         return model
 
     def fit_split(self, xs, split_state, split_callback):
 
         model, new_state_name = split_callback(split_state)
-        model = StateSplitingHMM.fit(model, xs, self.args.max_iterations)
+        model = StateSplitingHMM.fit(
+            model,
+            xs,
+            self.args.max_iterations,
+            self.args.n_jobs,
+        )
         logprob = sum(model.log_probability(x) for x in xs)
 
         return model, logprob, new_state_name

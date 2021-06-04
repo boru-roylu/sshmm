@@ -1,9 +1,10 @@
 commands:
     - python sshmm.py
-      --seq_data ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2
+      --seq_data ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2/cluster_sequence
       --exp ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2/sshmm
       --center ./tmobile/cluster_assignment/bert-base-uncased_mlm-lemax-merge-num2/$(party)_cluster_centers.csv
       --num_clusters $(num_clusters)
+      --party $(party)
 
 params:
     - name: num_clusters
