@@ -82,7 +82,7 @@ vocab = {v: k for k, v in vocab.items()}
 print('vocab size = ', len(vocab))
 
 model = StateSplitingHMM.load(args.model_path)
-assert set(model.states[0].distribution.parameters[0].keys()) == vocab.keys()
+#assert set(model.states[0].distribution.parameters[0].keys()) == vocab.values()
 
 print(f'# states = {len(model.states) - 2}')
 

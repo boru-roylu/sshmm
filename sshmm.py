@@ -133,29 +133,36 @@ print('Number of top k clusters (vocab size) = ', len(vocab))
     prepare data
 """
 
-print('# train examples = ', len(data['train']['xs']))
-print('(before filter low-freq clusters)')
-ori_avg_len = np.mean(data['train']['x_lens'])
-print(f'avg len = {ori_avg_len}')
+print('********** Before filter low-freq clusters **********')
 
+ori_avg_len = np.mean(data['train']['x_lens'])
+print(f'    avg len = {ori_avg_len}')
+print(f"    # train examples = {len(data['train']['xs'])}")
+
+print(data['train']['xs'][0])
 cut_lens = filter_low_freq_clusters(data, vocab)
+print(data['train']['xs'][0])
+exit()
 
 avg_len = np.mean(data['train']['x_lens'])
 avg_cut_len = np.mean(cut_lens['train'])
-print('(after filter low-freq clusters)')
-print(f'avg len = {avg_len}')
-print(f'avg cut len = {avg_cut_len}')
-print(f'cut percent = {avg_cut_len / ori_avg_len}')
-print('(after filter low freq) # train examples = ', len(data['train']['xs']))
+
+print('********** After filter low-freq clusters **********')
+print(f'    avg len = {avg_len}')
+print(f'    avg cut len = {avg_cut_len}')
+print(f'    cut percent = {avg_cut_len / ori_avg_len}')
+print(f"    # train examples = {len(data['train']['xs'])}")
+
 
 min_seq_len = np.quantile(data['train']['x_lens'], args.min_seq_len_percent)
 max_seq_len = np.quantile(data['train']['x_lens'], args.max_seq_len_percent)
-
-print(f'max_seq_len = {max_seq_len}')
-print(f'min_seq_len = {min_seq_len}')
-
 filter_cluster_seq_lens(data, min_seq_len, max_seq_len)
-print('(after filter seq lens) # train examples = ', len(data['train']['xs']))
+
+
+print('********** After filter low-freq clusters **********')
+print(f'    max_seq_len = {max_seq_len}')
+print(f'    min_seq_len = {min_seq_len}')
+print(f"    # train examples = {len(data['train']['xs'])}")
 
 
 """
