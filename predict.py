@@ -45,7 +45,7 @@ args = parser.parse_args()
 
 os.makedirs(args.output_dir, exist_ok=True)
 
-splits = ['dev', 'test']
+splits = ['train', 'dev', 'test']
 
 path = os.path.join(args.exp_dir, 'vocab.json')
 with open(path, 'r') as f:
@@ -96,4 +96,4 @@ for split, d in data.items():
 
     df = pd.DataFrame(rows, columns=['example_id', 'state_sequence'])
     path = os.path.join(args.output_dir, f'{args.party}_{split}.csv') 
-    df.to_csv(path, sep="|", index=False)
+    df.to_csv(path, sep="|", index=False) 

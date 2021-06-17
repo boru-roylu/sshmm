@@ -9,7 +9,38 @@ from collections import Counter, OrderedDict, defaultdict
 from graphviz import Digraph
 from pomegranate import *
 
-from utils import get_states, get_named_edges 
+def get_states(model_json):
+    dummy_states = []
+    state2emissionprob = OrderedDict()
+    insert_state2emissionprob = OrderedDict()
+    for s in model_json['states']:
+        n = s['name']
+        if 'start' in n or 'end' in n:
+            dummy_states.append(n)
+        elif n[0] == 'I':
+            insert_state2emissionprob[n] = s['distribution']['parameters'][0]
+        else:
+            state2emissionprob[n] = s['distribution']['parameters'][0]
+    return state2emissionprob, insert_state2emissionprob, dummy_states
+
+
+def get_named_edges(model_json):
+    idx2names = {i: s['name'] for i, s in enumerate(model_json['states'])}
+
+    named_edges = []
+    insert_named_edges = []
+    for e in model_json['edges']:
+        i = idx2names[e[0]]
+        j = idx2names[e[1]]
+        prob = e[2]
+
+        if i[0] == 'I':
+            insert_named_edges.append([i, j, prob])
+        else:
+            named_edges.append([i, j, prob])
+
+    return named_edges, insert_named_edges
+
 
 def normalize(dic):
     _sum = sum(dic.values())
@@ -331,10 +362,11 @@ class StateSplitingHMM:
         return model, new
     
     
-    def plot(self, image_path):
+    @staticmethod
+    def plot(args, image_path, model, cluster2utt):
         #df = pd.read_csv('./raw_data/150/medoid_centers.csv')
     
-        model_json = json.loads(self.model.to_json())
+        model_json = json.loads(model.to_json())
     
         state2emissionprob, insert_state2emissionprob, dummy_states = get_states(model_json)
     
@@ -349,7 +381,7 @@ class StateSplitingHMM:
         #c0.edge_attr.update(color='#076789', fontsize="12")
         c0.edge_attr.update(color='white')
 
-        if self.args.insert:
+        if args.insert:
             c1 = Digraph('insert')
             c1.body.append('style=filled')
             c1.body.append('color=white')
@@ -377,19 +409,19 @@ class StateSplitingHMM:
         """
         state2topk_clusters = OrderedDict()
         sn2ep = list(state2emissionprob.items())
-        if self.args.insert:
+        if args.insert:
             sn2ep += list(insert_state2emissionprob.items())
         for name, ep in sn2ep:
             if name[0] == 'I':
-                _emission_topk = self.args.plot_insert_topk_clusters
+                _emission_topk = args.plot_insert_topk_clusters
             else:
-                _emission_topk = self.args.plot_topk_clusters
+                _emission_topk = args.plot_topk_clusters
 
             string = name + "\n"
             topk = sorted(ep.items(), key=lambda x: x[1], reverse=True)[:_emission_topk]
             for cluster, prob in topk:
                 string += f'cluster = {cluster}; prob = {prob:.4f}\l'
-                string += "\l".join(textwrap.wrap(f"{self.cluster2utt[cluster]}", width=40))
+                string += "\l".join(textwrap.wrap(f"{cluster2utt[cluster]}", width=40))
                 string += "\l\l"
             state2topk_clusters[name] = string
     
@@ -399,8 +431,8 @@ class StateSplitingHMM:
         for s in dummy_states:
             c0.node(s)
 
-        for j, _ in i2js[self.model.start.name]:
-            c0.edge(self.model.start.name, j)
+        for j, _ in i2js[model.start.name]:
+            c0.edge(model.start.name, j)
 
         """
             normal states
@@ -409,32 +441,35 @@ class StateSplitingHMM:
             topk_clusters = state2topk_clusters[name] 
             c0.node(name, topk_clusters)
             # for better visualization, we tie child with parent by a white edge
-            c0.edge(name, self.state2child[name])
+            if state2child:
+                c0.edge(name, state2child[name])
 
         """
             insert states
         """
-        if self.args.insert:
+        if args.insert:
             for name in insert_state2emissionprob.keys():
                 topk_clusters = state2topk_clusters[name]
                 c1.node(name, topk_clusters)
 
                 # for better visualization, we tie child with parent by a white edge
                 normal_state_name = name.split('@')[1]
-                child_name = self.state2child[normal_state_name]
-                if child_name != self.model.end.name:
-                    child_insert_state_name = f'I@{child_name}'
-                    c1.edge(name, child_insert_state_name)
+
+                if state2child:
+                    child_name = state2child[normal_state_name]
+                    if child_name != self.model.end.name:
+                        child_insert_state_name = f'I@{child_name}'
+                        c1.edge(name, child_insert_state_name)
 
         g.subgraph(c0)
-        if self.args.insert:
+        if args.insert:
             g.subgraph(c1)
 
         # sort edges by their prob
         for i, js in i2js.items():
             i2js[i] = sorted(js, key=lambda x: x[1], reverse=True)
 
-        for i in list(state2emissionprob.keys()) + list(insert_state2emissionprob.keys()) + [self.model.start.name]:
+        for i in list(state2emissionprob.keys()) + list(insert_state2emissionprob.keys()) + [model.start.name]:
             red_top1 = False
             if i[0] == 'I':
                 color = '#388B46'
@@ -442,7 +477,7 @@ class StateSplitingHMM:
                 color = '#005FFE'
             js = i2js[i]
             for k, (j, prob) in enumerate(js):
-                if j == self.model.end.name:
+                if j == model.end.name:
                     g.edge(i, j, label=f'{prob:.3f}', len='3.00', style='dashed', color=color)
                 elif i != j and not red_top1 and i[0] != 'I':
                     g.edge(i, j, label=f'{prob:.3f}', len='3.00', color='#F0644D')

@@ -189,7 +189,12 @@ with open(path, 'w') as f:
 init_threshold = int(np.mean(data['train']['x_lens']))
 sshmm = StateSplitingHMM(args, cnt)
 sshmm.init_model(data['train']['xs'], num_init_states, init_threshold=init_threshold)
-sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_init'))
+sshmm.plot(
+    args,
+    image_path=os.path.join(image_dir, f'sshmm_init'),
+    model=sshmm.model,
+    cluster2utt=sshmm.cluster2utt,
+)
 
 
 print('Start training')
@@ -199,7 +204,12 @@ sshmm.model = StateSplitingHMM.fit(
     args.max_iterations,
     args.n_jobs,
 )
-sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'))
+sshmm.plot(
+    args,
+    image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'),
+    model=sshmm.model,
+    cluster2utt=sshmm.cluster2utt,
+)
 
 for iteration in range(args.num_split):
     print(f'*'*20, f'iteration {iteration+1}', '*'*20, flush=True)
@@ -233,5 +243,11 @@ for iteration in range(args.num_split):
     print(f'    num_temperal_split = {sshmm.num_temperal_split}')
     print(f'    num_vertical_split = {sshmm.num_vertical_split}', flush=True)
 
-    sshmm.plot(image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'))
+    sshmm.plot(
+        args,
+        image_path=os.path.join(image_dir, f'sshmm_{sshmm.num_states:02}'),
+        model=sshmm.model,
+        cluster2utt=sshmm.cluster2utt
+
+    )
     sshmm.save(model_dir)
